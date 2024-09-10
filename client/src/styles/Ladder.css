@@ -1,0 +1,39 @@
+.ladder-container {
+    padding: 20px;
+    background-color: #1c1c1c;
+    color: white;
+  }
+  
+  .ladder-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .ladder-table th,
+  .ladder-table td {
+    padding: 10px;
+    border-bottom: 1px solid #2e2e2e;
+    text-align: center;
+  }
+  
+  .ladder-table th {
+    background-color: #2a2a2a;
+    color: #ffffff;
+  }
+  
+  .ladder-table td {
+    background-color: #1e1e1e;
+  }
+  
+  .accept-button {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  
+  .accept-button:hover {
+    background-color: #45a049;
+  }
+  

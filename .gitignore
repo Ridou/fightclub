@@ -1,0 +1,44 @@
+# Node modules
+**/node_modules
+/.pnp
+.pnp.js
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Build outputs
+/build
+
+# Miscellaneous
+.DS_Store
+.vscode/
+.idea/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+# Ignore Firebase Admin credentials if applicable
+/firebase-adminsdk.json
+
+# Other possible IDE settings
+*.iml
+*.sublime-workspace
+
+# Ignore npm lock files if you use yarn, and vice versa
+package-lock.json
