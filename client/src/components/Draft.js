@@ -1,7 +1,8 @@
+// client/src/components/Draft.js
 import React, { useState } from 'react';
 
 const Draft = () => {
-  const allCharacters = ['Gloria', 'Simona', 'Character3', 'Character4']; // Add more characters
+  const allCharacters = ['Gloria', 'Simona', 'Abyss', 'Acambe'];
 
   const [player1Picks, setPlayer1Picks] = useState([]);
   const [player2Picks, setPlayer2Picks] = useState([]);

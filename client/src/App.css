@@ -1,38 +1,50 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+/* client/src/App.css */
+.header {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  justify-content: space-between;
+  background-color: #222;
+  padding: 10px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+}
+
+.user-info {
   color: white;
 }
 
-.App-link {
-  color: #61dafb;
+.account-details, .draft, .characters-list {
+  padding: 20px;
+  background-color: #333;
+  color: white;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.account-input {
+  margin-bottom: 10px;
+}
+
+.account-actions button {
+  margin-right: 10px;
+}
+
+.character-card {
+  display: inline-block;
+  margin: 10px;
+}
+
+.character-card img {
+  width: 100px;
+  height: auto;
+}
+
+.draft .picks {
+  display: flex;
+  justify-content: space-between;
 }
