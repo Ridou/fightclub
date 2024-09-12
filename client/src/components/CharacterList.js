@@ -23,6 +23,14 @@ const unreleasedCharacters = [
   'Homa', 'Layla', 'Pamina', 'Safiyyah', 'Schacklulu', 'Taair', 'Tristan'
 ];
 
+// List of predefined roles
+const roles = [
+  { name: 'Watcher', imageUrl: '/images/watcher.png' }, // Add more roles as necessary
+  { name: 'Warrior', imageUrl: '/images/warrior.png' },
+  { name: 'Mage', imageUrl: '/images/mage.png' },
+  // Add more role objects as needed
+];
+
 const CharacterList = ({ onSelect, bannedCharacters, player1Picks, player2Picks }) => {
   const [allCharacters, setAllCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +42,15 @@ const CharacterList = ({ onSelect, bannedCharacters, player1Picks, player2Picks 
       const characters = querySnapshot.docs
         .map((doc) => doc.data())
         .filter(character => !unreleasedCharacters.includes(character.name)); // Exclude unreleased characters
-      setAllCharacters(characters);
+      
+      // Assign a role to each character, either from Firestore or dynamically
+      const charactersWithRoles = characters.map(character => {
+        // Assign a random role to each character if not already assigned
+        const randomRole = roles[Math.floor(Math.random() * roles.length)];
+        return { ...character, role: character.role || randomRole.name, roleImage: randomRole.imageUrl };
+      });
+
+      setAllCharacters(charactersWithRoles);
       setLoading(false);
     };
 
@@ -67,6 +83,11 @@ const CharacterList = ({ onSelect, bannedCharacters, player1Picks, player2Picks 
           >
             <img src={character.imageUrl} alt={character.name} />
             <h3>{character.name}</h3>
+            {/* Display the role and role icon */}
+            <div className="character-role">
+              <img src={character.roleImage} alt={character.role} className="role-icon" />
+              <p>{character.role}</p>
+            </div>
           </div>
         ))}
       </div>

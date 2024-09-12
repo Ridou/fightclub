@@ -1,6 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const admin = require('firebase-admin');
+const { v4: uuidv4 } = require('uuid'); // For generating unique filenames
 
 // Replace with the correct path to your service account key
 const serviceAccount = require('../config/socfightclub-firebase-adminsdk-z32np-b63b0c8e45.json');
@@ -8,10 +9,14 @@ const serviceAccount = require('../config/socfightclub-firebase-adminsdk-z32np-b
 // Initialize Firebase Admin SDK
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
+  storageBucket: 'socfightclub.appspot.com', // Replace with your Firebase Storage bucket name
 });
 
 // Firestore reference from Admin SDK
 const db = admin.firestore();
+
+// Get Firebase Storage reference
+const bucket = admin.storage().bucket();
 
 // Base URL for gear page
 const gearUrl = 'https://swordofconvallaria.co/gear/';
@@ -59,6 +64,12 @@ const scrapeGear = async () => {
         if (gearDetails) {
           Object.assign(gear, gearDetails);
 
+          // Upload gear image to Firebase and get the new URL
+          const firebaseImageUrl = await downloadAndUploadImage(gear.imageUrl, gear.name, 'gears');
+          if (firebaseImageUrl) {
+            gear.imageUrl = firebaseImageUrl; // Replace the original image URL with Firebase URL
+          }
+
           // Save gear data to Firestore
           console.log(`Saving gear data for ${gear.name} to Firestore...`);
           await db.collection('gear').doc(gear.name).set(gear);
@@ -72,6 +83,31 @@ const scrapeGear = async () => {
     console.log('Finished scraping all gear.');
   } catch (error) {
     console.error('Error scraping gear data:', error);
+  }
+};
+
+// Download image and upload to Firebase Storage in the appropriate folder (now 'gears')
+const downloadAndUploadImage = async (imageUrl, gearName, folder = 'gears') => {
+  try {
+    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data, 'binary');
+
+    // Generate a unique filename for Firebase Storage in the correct folder
+    const fileName = `${folder}/${gearName.toLowerCase().replace(/\s+/g, '_')}_${uuidv4()}.png`;
+    const file = bucket.file(fileName);
+
+    // Upload the image to Firebase Storage
+    await file.save(buffer, {
+      metadata: { contentType: 'image/png' },
+      public: true,
+    });
+
+    // Make the file publicly accessible
+    const downloadURL = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    return downloadURL;
+  } catch (error) {
+    console.error(`Error downloading and uploading image for ${gearName}:`, error);
+    return null; // In case of failure, return null
   }
 };
 

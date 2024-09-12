@@ -1,17 +1,23 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const admin = require('firebase-admin');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid'); // For generating unique filenames
 
 // Replace with the correct path to your service account key
 const serviceAccount = require('../config/socfightclub-firebase-adminsdk-z32np-b63b0c8e45.json');
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: 'socfightclub.appspot.com' // Replace with your Firebase Storage bucket name
 });
 
 // Firestore reference from Admin SDK
 const db = admin.firestore();
+
+// Get Firebase Storage reference
+const bucket = admin.storage().bucket();
 
 // Base URL of the webpage to scrape
 const baseURL = 'https://swordofconvallaria.co';
@@ -44,22 +50,39 @@ const scrapeCharacters = async () => {
     // Use Promise.all to wait for all character details to be scraped
     await Promise.all(
       characters.map(async (character) => {
-        const docRef = db.collection('characters').doc(character.name);
-        const docSnapshot = await docRef.get();
-
-        // If character does not exist, proceed to scrape details
-        if (!docSnapshot.exists) {
-          console.log(`Scraping details for new character: ${character.name}`);
-          await scrapeCharacterDetails(character.name, character.imageUrl);
-        } else {
-          console.log(`Character ${character.name} already exists in Firestore. Skipping...`);
-        }
+        console.log(`Scraping details for character: ${character.name}`);
+        await scrapeCharacterDetails(character.name, character.imageUrl);
       })
     );
 
     console.log('Finished scraping all characters.');
   } catch (error) {
     console.error('Error scraping character data:', error);
+  }
+};
+
+// Download image and upload to Firebase Storage in the appropriate folder
+const downloadAndUploadImage = async (imageUrl, characterName, folder = 'characters') => {
+  try {
+    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data, 'binary');
+
+    // Generate a unique filename for Firebase Storage in the correct folder
+    const fileName = `${folder}/${characterName.toLowerCase().replace(/\s+/g, '_')}_${uuidv4()}.png`;
+    const file = bucket.file(fileName);
+
+    // Upload the image to Firebase Storage
+    await file.save(buffer, {
+      metadata: { contentType: 'image/png' },
+      public: true,
+    });
+
+    // Make the file publicly accessible
+    const downloadURL = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    return downloadURL;
+  } catch (error) {
+    console.error(`Error downloading and uploading image for ${characterName}:`, error);
+    return null; // In case of failure, return null
   }
 };
 
@@ -79,9 +102,16 @@ const scrapeCharacterDetails = async (characterName, imageUrl) => {
       return; // Skip if no table found for the character
     }
 
+    // Upload the character image to Firebase Storage in the "characters" folder
+    const firebaseImageUrl = await downloadAndUploadImage(imageUrl, characterName, 'characters');
+    if (!firebaseImageUrl) {
+      console.log(`Skipping ${characterName}: Image upload failed.`);
+      return; // Skip if image upload fails
+    }
+
     const characterDetails = {
       name: characterName,
-      imageUrl: imageUrl,
+      imageUrl: firebaseImageUrl, // Store Firebase URL instead of original
       class: '', // Extracted from the table
       faction: '', // Extracted from the table
       rarity: '', // Extracted from the table
@@ -143,11 +173,21 @@ const scrapeCharacterDetails = async (characterName, imageUrl) => {
       }
     });
 
-    // Extract gear recommendations
-    $('div.gear-recommendations table tr td').each((index, element) => {
+    // Extract gear recommendations and upload images
+    const gearElements = $('div.gear-recommendations table tr td');
+    for (const element of gearElements) {
       const gearName = $(element).find('img').attr('alt');
-      characterDetails.gear.recommended.push(gearName);
-    });
+      if (gearName) {
+        characterDetails.gear.recommended.push(gearName);
+
+        // Upload gear images to Firebase in the "gears" folder
+        const gearImageUrl = $(element).find('img').attr('src');
+        if (gearImageUrl) {
+          const firebaseGearImageUrl = await downloadAndUploadImage(gearImageUrl, gearName, 'gears');
+          console.log(`Uploaded gear image for ${gearName} to Firebase: ${firebaseGearImageUrl}`);
+        }
+      }
+    }
 
     // Extract skills
     $('div.skills-table tr td img').each((index, element) => {
@@ -162,8 +202,8 @@ const scrapeCharacterDetails = async (characterName, imageUrl) => {
     // Log the extracted character details to verify correctness
     console.log(`Extracted details for ${characterName}:`, characterDetails);
 
-    // Store detailed character data in Firestore
-    await db.collection('characters').doc(characterName).set(characterDetails);
+    // Store detailed character data in Firestore (Overwrite the old content)
+    await db.collection('characters').doc(characterName).set(characterDetails, { merge: false });
     console.log(`Stored detailed data for ${characterName}`);
   } catch (error) {
     console.error(`Error scraping details for ${characterName}:`, error);

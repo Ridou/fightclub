@@ -59,13 +59,10 @@ export const saveUserProfile = async (userId, profileData) => {
 // Function to get user profile from Firestore
 export const getUserProfile = async (userId) => {
   try {
-    console.log(`Fetching user profile for User ID: ${userId} from Firestore...`);
     const userDoc = await getDoc(doc(db, "users", userId));
     if (userDoc.exists()) {
-      console.log("User profile retrieved from Firestore:", userDoc.data());
       return userDoc.data();
     } else {
-      console.log("No user profile found in Firestore");
       return null;
     }
   } catch (error) {

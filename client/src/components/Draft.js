@@ -63,7 +63,7 @@ const Draft = () => {
           <h3>Player 1 Picks</h3>
           <div className="picks">
             {player1Picks.map((pick, index) => (
-              <div key={index} className="character-card">
+              <div key={index} className={`character-card ${pick.rarity}`}>
                 <img src={pick.imageUrl} alt={pick.name} />
                 <h3>{pick.name}</h3>
               </div>
@@ -74,7 +74,7 @@ const Draft = () => {
           <h3>Banned Character</h3>
           <div className="banned">
             {bannedCharacters.player1 ? (
-              <div className="character-card">
+              <div className={`character-card ${bannedCharacters.player1.rarity}`}>
                 <img src={bannedCharacters.player1.imageUrl} alt={bannedCharacters.player1.name} />
                 <h3>{bannedCharacters.player1.name}</h3>
               </div>
@@ -92,7 +92,7 @@ const Draft = () => {
           <h3>Player 2 Picks</h3>
           <div className="picks">
             {player2Picks.map((pick, index) => (
-              <div key={index} className="character-card">
+              <div key={index} className={`character-card ${pick.rarity}`}>
                 <img src={pick.imageUrl} alt={pick.name} />
                 <h3>{pick.name}</h3>
               </div>
@@ -103,7 +103,7 @@ const Draft = () => {
           <h3>Banned Character</h3>
           <div className="banned">
             {bannedCharacters.player2 ? (
-              <div className="character-card">
+              <div className={`character-card ${bannedCharacters.player2.rarity}`}>
                 <img src={bannedCharacters.player2.imageUrl} alt={bannedCharacters.player2.name} />
                 <h3>{bannedCharacters.player2.name}</h3>
               </div>
