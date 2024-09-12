@@ -42,4 +42,7 @@ yarn-error.log*
 *.sublime-workspace
 
 # Ignore npm lock files if you use yarn, and vice versa
-package-lock.json
+**/package-lock.json
+
+# Firebase service account
+**/serviceAccountKey.json

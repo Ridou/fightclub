@@ -1,0 +1,80 @@
+/* Container for the account details */
+.account-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    background-color: #1a1a1a; /* Dark background for contrast */
+    color: #ffffff; /* White text for readability */
+    padding: 20px;
+  }
+  
+  /* Header for the account details page */
+  .account-container h2 {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    color: #f0f0f0;
+    text-align: center;
+    border-bottom: 2px solid #9147ff; /* Stylish underline */
+    padding-bottom: 10px;
+    width: fit-content;
+  }
+  
+  /* Input fields and labels for account settings */
+  .account-input {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 20px;
+  }
+  
+  .account-input label {
+    font-size: 16px;
+    color: #aaaaaa;
+    margin-bottom: 8px;
+  }
+  
+  .account-input input {
+    padding: 12px;
+    font-size: 16px;
+    background-color: #2b2b2b;
+    border: 1px solid #555555;
+    border-radius: 8px;
+    color: #ffffff;
+    outline: none;
+  }
+  
+  .account-input input:focus {
+    border-color: #9147ff; /* Highlight when focused */
+  }
+  
+  /* Button styling */
+  .account-actions button {
+    padding: 12px 20px;
+    font-size: 16px;
+    background-color: #9147ff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .account-actions button:hover {
+    background-color: #772ce8;
+  }
+  
+  .account-actions button:disabled {
+    background-color: #555555;
+    cursor: not-allowed;
+  }
+  
+  .account-container p {
+    font-size: 16px;
+    margin-top: 20px;
+    color: #bbbbbb;
+  }
+  

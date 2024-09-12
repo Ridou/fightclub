@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { saveUserProfile, getUserProfile } from '../firebase'; // Import Firestore functions
+import { saveUserProfile, getUserProfile } from '../firebase';
+import '../styles/AccountDetails.css'; // Import the new CSS for modern styles
 
 function AccountDetails({ user }) {
   const [roleId, setRoleId] = useState('');
@@ -68,10 +69,11 @@ function AccountDetails({ user }) {
   }, [user]);
 
   return (
-    <div>
+    <div className="account-container">
       <h2>Account Details</h2>
       <p>Email: {user.email}</p>
-      <div>
+
+      <div className="account-input">
         <label>In-Game User ID (Role ID):</label>
         <input
           type="text"
@@ -83,6 +85,7 @@ function AccountDetails({ user }) {
           {loading ? 'Fetching...' : 'Fetch Game User'}
         </button>
       </div>
+
       {inGameName && <p>In-Game Name: {inGameName}</p>}
       {roleLevel && <p>Role Level: {roleLevel}</p>}
       {region && <p>Region: {region}</p>}
