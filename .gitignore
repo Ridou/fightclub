@@ -45,4 +45,5 @@ yarn-error.log*
 **/package-lock.json
 
 # Firebase service account
-server\config\socfightclub-firebase-adminsdk-z32np-b63b0c8e45.json
+server/config/socfightclub-firebase-adminsdk-z32np-b63b0c8e45.json
+
