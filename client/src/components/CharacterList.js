@@ -17,7 +17,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const CharacterList = () => {
+// List of unreleased characters (global filtering logic)
+const unreleasedCharacters = [
+  'Acambe', 'Agatha', 'Auguste', 'Caris', 'Cocoa', 'Col', 'Hasna', 
+  'Homa', 'Layla', 'Pamina', 'Safiyyah', 'Schacklulu', 'Taair', 'Tristan'
+];
+
+const CharacterList = ({ onSelect, bannedCharacters, player1Picks, player2Picks }) => {
   const [allCharacters, setAllCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,13 +31,25 @@ const CharacterList = () => {
   useEffect(() => {
     const fetchCharacters = async () => {
       const querySnapshot = await getDocs(collection(db, 'characters'));
-      const characters = querySnapshot.docs.map((doc) => doc.data());
+      const characters = querySnapshot.docs
+        .map((doc) => doc.data())
+        .filter(character => !unreleasedCharacters.includes(character.name)); // Exclude unreleased characters
       setAllCharacters(characters);
       setLoading(false);
     };
 
     fetchCharacters();
   }, []);
+
+  // Check if the character is banned or picked
+  const isCharacterBannedOrPicked = (character) => {
+    return (
+      bannedCharacters.player1?.name === character.name ||
+      bannedCharacters.player2?.name === character.name ||
+      player1Picks.some((pick) => pick.name === character.name) ||
+      player2Picks.some((pick) => pick.name === character.name)
+    );
+  };
 
   if (loading) return <p>Loading characters...</p>;
 
@@ -42,18 +60,14 @@ const CharacterList = () => {
       </div>
       <div className="characters">
         {allCharacters.map((character, index) => (
-          <a
+          <div
             key={index}
-            href={`https://swordofconvallaria.co/characters/${character.name.toLowerCase()}/`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="character-link"
+            className={`character-card ${isCharacterBannedOrPicked(character) ? 'disabled' : ''}`}
+            onClick={() => !isCharacterBannedOrPicked(character) && onSelect(character)}
           >
-            <div className="character-card">
-              <img src={character.imageUrl} alt={character.name} />
-              <h3>{character.name}</h3>
-            </div>
-          </a>
+            <img src={character.imageUrl} alt={character.name} />
+            <h3>{character.name}</h3>
+          </div>
         ))}
       </div>
     </div>

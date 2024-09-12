@@ -1,37 +1,5 @@
-/* Character list container */
-.character-list-container {
-    padding: 20px;
-    margin: 0 auto;
-    max-width: 1200px;
-  }
-  
-  /* Header for the Characters page */
-  .characters-header h2 {
-    font-size: 32px;
-    font-weight: bold;
-    color: #ffffff;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  /* Container for character cards */
-  .characters {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 10px;
-    justify-items: center;
-    margin-top: 20px;
-    padding: 0 20px;
-  }
-  
-  /* Character card link (no underline) */
-  .character-link {
-    text-decoration: none;
-    color: inherit; /* Inherit color from parent (the text) */
-  }
-  
-  /* Individual character card styling */
-  .character-card {
+/* Character cards for both picks and bans */
+.character-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -39,29 +7,48 @@
     border: 2px solid #ccc;
     border-radius: 15px;
     background-color: #f9f9f9;
+    cursor: pointer;
     width: 120px;
-    transition: transform 0.2s;
-    text-align: center;
-  }
-  
-  .character-card:hover {
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.character-card:hover {
     transform: scale(1.05);
-  }
-  
-  /* Character image */
-  .character-card img {
+}
+
+/* Grayed out disabled card with red border for banned/picked characters */
+.character-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: red; /* Red border for banned/picked characters */
+}
+
+/* Character image */
+.character-card img {
     width: 100px;
     height: 140px;
     object-fit: cover;
     border-radius: 8px;
     margin-bottom: 5px;
-  }
-  
-  /* Character name */
-  .character-card h3 {
+}
+
+/* Character name */
+.character-card h3 {
     margin: 0;
     font-size: 14px;
     text-align: center;
     color: #333;
-  }
-  
+}
+
+/* Character selection grid */
+.characters {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    justify-items: center;
+    margin-top: 20px;
+    padding: 0 20px;
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+}

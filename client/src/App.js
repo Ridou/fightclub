@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Ladder from './components/Ladder';
-import AccountDetails from './components/AccountDetails';
 import Draft from './components/Draft';
 import CharacterList from './components/CharacterList';
 import Header from './components/Header';
-import Match from './components/Match'; // Importing the Match component
+import Match from './components/Match';
+import AccountPage from './pages/AccountPage'; // Import AccountPage
 import { loginWithGoogle } from './firebase';
 import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
@@ -85,7 +85,7 @@ function App() {
       ) : (
         <>
           <Routes>
-            <Route path="/account" element={<AccountDetails user={user} />} />
+            <Route path="/account" element={<AccountPage user={user} />} /> {/* Updated to use AccountPage */}
             <Route path="/characters" element={<CharacterList />} />
             <Route path="/draft" element={<Draft />} />
             <Route path="/ladder" element={<Ladder />} />

@@ -1,57 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { initializeApp } from 'firebase/app';
+import React, { useState } from 'react';
+import CharacterList from './CharacterList'; // Import CharacterList
 import '../styles/Draft.css'; // Assuming the styles are here
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-};
-
-// Initialize Firebase App
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// List of unreleased characters
-const unreleasedCharacters = [
-  'Acambe', 'Agatha', 'Auguste', 'Caris', 'Cocoa', 'Col', 'Hasna', 
-  'Homa', 'Layla', 'Pamina', 'Safiyyah', 'Schacklulu', 'Taair', 'Tristan'
-];
-
 const Draft = () => {
-  const [allCharacters, setAllCharacters] = useState([]);
   const [player1Picks, setPlayer1Picks] = useState([]);
   const [player2Picks, setPlayer2Picks] = useState([]);
   const [bannedCharacters, setBannedCharacters] = useState({ player1: null, player2: null });
   const [currentPlayer, setCurrentPlayer] = useState(1);
-  const [loading, setLoading] = useState(true);
   const [banPhase, setBanPhase] = useState(true);
-
-  // Fetch characters from Firestore on component mount
-  useEffect(() => {
-    const fetchCharacters = async () => {
-      const querySnapshot = await getDocs(collection(db, 'characters'));
-      let characters = querySnapshot.docs.map((doc) => doc.data());
-
-      // Filter out unreleased characters
-      characters = characters.filter(character => !unreleasedCharacters.includes(character.name));
-      
-      setAllCharacters(characters);
-      setLoading(false);
-    };
-
-    fetchCharacters();
-  }, []);
 
   // Handle banning and picking characters
   const handlePick = (character) => {
     if (banPhase) {
-      // Banning phase logic
       if (currentPlayer === 1 && !bannedCharacters.player1) {
         setBannedCharacters({ ...bannedCharacters, player1: character });
         setCurrentPlayer(2);
@@ -61,7 +21,6 @@ const Draft = () => {
         setBanPhase(false); // End ban phase after each player bans 1 character
       }
     } else {
-      // Picking phase logic
       if (currentPlayer === 1 && player1Picks.length < 5) {
         setPlayer1Picks([...player1Picks, character]);
         setCurrentPlayer(2);
@@ -82,8 +41,7 @@ const Draft = () => {
     );
   };
 
-  if (loading) return <p>Loading characters...</p>;
-
+  // Create placeholders for picks
   const createPlaceholders = (numPlaceholders, currentPicks) => {
     const placeholders = [];
     for (let i = 0; i < numPlaceholders - currentPicks.length; i++) {
@@ -116,7 +74,7 @@ const Draft = () => {
           <h3>Banned Character</h3>
           <div className="banned">
             {bannedCharacters.player1 ? (
-              <div className="character-card disabled">
+              <div className="character-card">
                 <img src={bannedCharacters.player1.imageUrl} alt={bannedCharacters.player1.name} />
                 <h3>{bannedCharacters.player1.name}</h3>
               </div>
@@ -127,18 +85,7 @@ const Draft = () => {
         </div>
 
         {/* Character Selection Grid */}
-        <div className="characters">
-          {allCharacters.map((character, index) => (
-            <div
-              key={index}
-              className={`character-card ${isCharacterDisabled(character) ? 'disabled' : ''}`}
-              onClick={() => !isCharacterDisabled(character) && handlePick(character)}
-            >
-              <img src={character.imageUrl} alt={character.name} />
-              <h3>{character.name}</h3>
-            </div>
-          ))}
-        </div>
+        <CharacterList onSelect={(character) => !isCharacterDisabled(character) && handlePick(character)} bannedCharacters={bannedCharacters} player1Picks={player1Picks} player2Picks={player2Picks} />
 
         {/* Right Panel - Player 2 Picks */}
         <div className="player-panel">
@@ -156,7 +103,7 @@ const Draft = () => {
           <h3>Banned Character</h3>
           <div className="banned">
             {bannedCharacters.player2 ? (
-              <div className="character-card disabled">
+              <div className="character-card">
                 <img src={bannedCharacters.player2.imageUrl} alt={bannedCharacters.player2.name} />
                 <h3>{bannedCharacters.player2.name}</h3>
               </div>

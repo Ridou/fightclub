@@ -1,6 +1,7 @@
+// src/components/AccountDetails.js
 import React, { useState, useEffect } from 'react';
-import { saveUserProfile, getUserProfile } from '../firebase';
-import '../styles/AccountDetails.css'; // Import the new CSS for modern styles
+import { saveUserProfile, getUserProfile } from '../firebase'; // Only profile-related functions
+import '../styles/AccountDetails.css'; // Use separate CSS for Account Details
 
 function AccountDetails({ user }) {
   const [roleId, setRoleId] = useState('');
@@ -35,9 +36,7 @@ function AccountDetails({ user }) {
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
-      console.log("Updating profile for Role ID:", roleId);
-      await fetchGameUserInfo(roleId); // Fetch and save game data
-      console.log("Profile updated successfully.");
+      await fetchGameUserInfo(roleId);
     } catch (error) {
       console.error("Error updating profile:", error);
     } finally {
@@ -49,27 +48,22 @@ function AccountDetails({ user }) {
   useEffect(() => {
     const loadUserProfile = async () => {
       try {
-        console.log("Loading user profile...");
         const profile = await getUserProfile(user.uid);
         if (profile) {
-          console.log("Profile data loaded:", profile);
           setRoleId(profile.roleId || '');
           setInGameName(profile.inGameName || '');
           setRoleLevel(profile.roleLevel || '');
           setRegion(profile.region || '');
-        } else {
-          console.log("No profile data found for user.");
         }
       } catch (error) {
         console.error("Error loading user profile:", error);
       }
     };
-
     loadUserProfile();
   }, [user]);
 
   return (
-    <div className="account-container">
+    <div className="left-section">
       <h2>Account Details</h2>
       <p>Email: {user.email}</p>
 

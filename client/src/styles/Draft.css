@@ -19,15 +19,10 @@
     margin: 0 auto;
 }
 
-/* Optional if you want more separation from the main header */
-.draft-header {
-    margin-top: 30px;
-}
-
 /* Main container for the draft (3 columns) */
 .draft-container {
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr; /* 1 column for Player 1, 2 columns for the grid, 1 for Player 2 */
+    grid-template-columns: 1fr 2fr 1fr;
     gap: 10px;
     align-items: start;
     padding: 0 20px;
@@ -52,7 +47,7 @@
 /* Player's Picks displayed in two columns */
 .picks {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Two columns for more compact layout */
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
     justify-content: flex-start;
 }
@@ -73,9 +68,8 @@
 /* Banned characters section */
 .banned {
     margin-top: 20px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Two columns for compact layout */
-    gap: 10px;
+    display: flex;
+    justify-content: center;
 }
 
 /* Character cards for both picks and bans */
@@ -89,17 +83,18 @@
     background-color: #f9f9f9;
     cursor: pointer;
     width: 120px;
-    transition: transform 0.2s;
+    transition: transform 0.2s, border-color 0.2s;
 }
 
 .character-card:hover {
     transform: scale(1.05);
 }
 
-/* Grayed out disabled card */
+/* Grayed out disabled card with red border for banned/picked characters */
 .character-card.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    border-color: red; /* Red border for banned/picked characters */
 }
 
 /* Character image */
@@ -135,4 +130,13 @@
 /* Adjust spacing around the draft */
 .draft-container {
     padding: 20px;
+}
+
+/* Additional style for picked and banned character highlight */
+.character-card.banned,
+.character-card.picked {
+    opacity: 0.7;
+    border-color: red;
+    box-shadow: 0px 0px 10px red;
+    transform: scale(1.05);
 }

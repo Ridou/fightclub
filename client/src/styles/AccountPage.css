@@ -1,0 +1,10 @@
+/* Main container for the account page with a grid layout */
+.account-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    padding: 20px;
+    background-color: #18181b;
+    color: #ffffff;
+    min-height: 100vh;
+}

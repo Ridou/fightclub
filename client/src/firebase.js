@@ -80,3 +80,14 @@ export const getUserProfile = async (userId) => {
     throw error;
   }
 };
+
+// Save team to Firestore
+export const saveUserTeam = async (uid, team) => {
+  const db = getFirestore();
+  try {
+    await setDoc(doc(db, 'users', uid), { team }, { merge: true });
+    console.log('Team successfully saved!');
+  } catch (error) {
+    console.error('Error saving team:', error);
+  }
+};
