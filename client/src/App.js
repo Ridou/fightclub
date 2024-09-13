@@ -14,7 +14,8 @@ function App() {
   const [user, setUser] = useState(null); // Store user account info
   const [inGameName, setInGameName] = useState(''); // Store the in-game name
   const [team, setTeam] = useState([]); // Store the user's team
-  const [loading, setLoading] = useState(true);
+  const [queueCount, setQueueCount] = useState(0); // Store queue count
+  const [loading, setLoading] = useState(true); // Loading state
 
   const db = getFirestore(); // Firestore reference
 
@@ -72,11 +73,22 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // Function to update queue count (could be part of Match component too)
+  const handleQueueUpdate = (newCount) => {
+    setQueueCount(newCount);
+  };
+
   if (loading) return <p>Loading...</p>;
 
   return (
     <div className="App">
-      <Header user={user} inGameName={inGameName} team={team} handleLogout={handleLogout} /> {/* Pass team and inGameName */}
+      <Header 
+        user={user} 
+        inGameName={inGameName} 
+        team={team} 
+        handleLogout={handleLogout} 
+        queueCount={queueCount}  // Pass queue count to Header if needed
+      />
 
       {!user ? (
         <>
@@ -91,9 +103,12 @@ function App() {
           <Routes>
             <Route path="/account" element={<AccountPage user={user} />} /> {/* Updated to use AccountPage */}
             <Route path="/characters" element={<CharacterList />} />
-            <Route path="/draft" element={<Draft />} />
+            <Route path="/draft" element={<Draft user={user} />} /> {/* Ensure user is passed */}
+            <Route 
+              path="/match" 
+              element={<Match user={user} handleQueueUpdate={handleQueueUpdate} />} // Pass user and queue update
+            /> 
             <Route path="/ladder" element={<Ladder />} />
-            <Route path="/match" element={<Match />} /> {/* Adding match route */}
             <Route path="/" element={<Navigate to="/account" />} />
             <Route path="*" element={<Navigate to="/account" />} />
           </Routes>
