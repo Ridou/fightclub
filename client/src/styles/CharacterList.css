@@ -1,100 +1,18 @@
-/* Character cards for both picks and bans */
-.character-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2px;
-    border: 2px solid #ccc;
-    border-radius: 15px;
-    background-color: #f9f9f9;
-    cursor: pointer;
-    width: 120px;
-    transition: transform 0.2s, border-color 0.2s;
-}
-
-.character-card:hover {
-    transform: scale(1.05);
-}
-
-/* Role-specific styling for the character card */
-.character-card.watcher {
-    border-color: yellow; /* Yellow for Watcher */
-    box-shadow: 0 0 10px yellow;
-}
-
-.character-card.destroyer {
-    border-color: purple; /* Purple for Destroyer */
-    box-shadow: 0 0 10px purple;
-}
-
-.character-card.breaker {
-    border-color: crimson; /* Crimson Red for Breaker */
-    box-shadow: 0 0 10px crimson;
-}
-
-.character-card.defender {
-    border-color: green; /* Green for Defender */
-    box-shadow: 0 0 10px green;
-}
-
-.character-card.seeker {
-    border-color: blue; /* Blue for Seeker */
-    box-shadow: 0 0 10px blue;
-}
-
-/* Grayed out disabled card with red border for banned/picked characters */
-.character-card.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: red;
-}
-
-/* Character image */
-.character-card img {
-    width: 100px;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 8px;
-    margin-bottom: 5px;
-}
-
-/* Character name */
-.character-card h3 {
-    margin: 0;
-    font-size: 14px;
-    text-align: center;
-    color: #333;
-}
-
-/* Role display below character */
-.character-role {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 5px;
-}
-
-.role-icon {
-    width: 20px;
-    height: 20px;
-    margin-right: 5px;
-}
-
-.character-role p {
-    margin: 0;
-    font-size: 12px;
-    color: #555;
-}
-
 /* Character selection grid */
 .characters {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Ensure a good minimum size for characters */
     gap: 10px;
     justify-items: center;
     margin-top: 20px;
-    padding: 0 20px;
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
+    padding: 0 10px; /* Reduce padding to avoid too much offset */
+    max-width: 100%; /* Ensure the grid takes full width */
+}
+
+/* Adjust character card within the grid */
+.character-list-container {
+    padding: 0; /* Remove padding to avoid unnecessary margins */
+    width: 100%; /* Make sure the container takes up the full width */
+    display: flex;
+    justify-content: center; /* Center the container */
 }

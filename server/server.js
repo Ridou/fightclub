@@ -1,4 +1,3 @@
-// server/server.js
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
@@ -7,6 +6,7 @@ const app = express();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const googleRoutes = require('./routes/googleRoutes');
+const teamRoutes = require('./routes/teamRoutes'); // Import the new team-related routes
 
 // Enable CORS
 app.use(cors());
@@ -22,6 +22,7 @@ app.use((req, res, next) => {
 // Use the routes
 app.use('/api', authRoutes); // Authentication-related routes
 app.use('/api', googleRoutes); // Google OAuth routes
+app.use('/api', teamRoutes);   // Team management routes
 
 // Error handling middleware for routes that aren't found
 app.use((req, res, next) => {

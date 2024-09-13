@@ -1,4 +1,4 @@
-/* Right section for team details */
+/* Container for the right section */
 .right-section {
     background-color: #2b2b2b;
     padding: 20px;
@@ -7,40 +7,103 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+    max-width: 100%; /* Allow it to expand fully */
+    margin: 0 auto;
+    width: calc(100% - 20px); /* Add space on both sides */
+    align-items: flex-start; /* Align everything to the left */
 }
 
 /* Team carousel for scrolling selected characters */
 .team-list {
-    max-height: 150px;
-    overflow-y: auto;
+    max-height: 250px;
+    overflow-y: hidden;
     padding: 10px;
     background-color: #333333;
     border-radius: 8px;
     margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-start; /* Align content to the left */
+    overflow-x: auto; /* Enable horizontal scrolling */
+    width: 100%; /* Ensure it takes the full width */
+    max-width: 900px; /* Set a more restricted width */
 }
 
+/* Flex container for character cards in the team carousel */
 .team-carousel {
     display: flex;
-    flex-direction: column;
+    flex-wrap: nowrap;
     gap: 10px;
+    justify-content: flex-start; /* Align characters in a single row */
+    overflow-x: auto;
+    width: 100%; /* Adjust the width */
 }
 
-.team-carousel li {
-    font-size: 18px;
-    color: #ffffff;
-    padding: 10px;
-    background-color: #444444;
-    border-radius: 5px;
+/* Character card in the team carousel */
+.team-carousel .character-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 7px;
+    border-radius: 10px;
+    cursor: pointer;
+    width: 107px;
+    height: 190px;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    background-color: inherit;
 }
 
-/* Character selection carousel for scrolling characters */
-.character-carousel {
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 10px;
-    background-color: #333333;
-    border-radius: 8px;
-    margin-top: 20px;
+/* Hover effect for character card */
+.team-carousel .character-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Placeholder for empty slots */
+.placeholder {
+    width: 107px;
+    height: 190px;
+    border: 2px dashed #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+    font-size: 14px;
+}
+
+/* Swiper container customization */
+.swiper-container {
+    width: 100%;
+    height: auto;
+}
+
+/* Swiper slide */
+.swiper-slide {
+    display: flex;
+    justify-content: center;
+    width: 95px !important;
+    max-width: 107px;
+    height: auto;
+    margin-right: 10px;
+}
+
+/* Disable the pagination bullets */
+.swiper-pagination {
+    display: none !important;
+}
+
+/* Character image */
+.character-card img {
+    width: 80px;
+    height: 100px;
+    object-fit: cover;
+}
+
+/* Character name text styling */
+.character-card h3 {
+    font-size: 14px;
+    color: white;
+    text-align: center;
+    margin-top: 5px;
 }
 
 /* Edit/Save Team button styling */
@@ -53,6 +116,8 @@
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    align-self: flex-start; /* Align the button to the left */
+    margin-top: 10px;
 }
 
 .edit-team-button:hover {

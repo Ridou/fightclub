@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
+import CharacterCard from './CharacterCard'; // Import the CharacterCard component
 import '../styles/CharacterList.css'; // Assuming styles will go here
 
 // Firebase configuration
@@ -13,82 +14,94 @@ const firebaseConfig = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// List of unreleased characters (global filtering logic)
 const unreleasedCharacters = [
-  'Acambe', 'Agatha', 'Auguste', 'Caris', 'Cocoa', 'Col', 'Hasna', 
-  'Homa', 'Layla', 'Pamina', 'Safiyyah', 'Schacklulu', 'Taair', 'Tristan'
+  'Acambe', 'Agatha', 'Auguste', 'Caris', 'Cocoa', 'Col', 'Hasna', 'Homa', 
+  'Layla', 'Pamina', 'Safiyyah', 'Schacklulu', 'Taair', 'Tristan'
 ];
 
-// List of predefined roles
-const roles = [
-  { name: 'Watcher', imageUrl: '/images/watcher.png' }, // Add more roles as necessary
-  { name: 'Warrior', imageUrl: '/images/warrior.png' },
-  { name: 'Mage', imageUrl: '/images/mage.png' },
-  // Add more role objects as needed
-];
+const roleImageMap = {
+  Watcher: 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/roles%2FSoC_Watcher.webp?alt=media',
+  Seeker: 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/roles%2FSoC_Seeker.webp?alt=media',
+  Breaker: 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/roles%2FSoC_Breaker.webp?alt=media',
+  Defender: 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/roles%2FSoC_Defender.webp?alt=media',
+  Destroyer: 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/roles%2FSoC_Destroyer.webp?alt=media',
+};
 
-const CharacterList = ({ onSelect, bannedCharacters, player1Picks, player2Picks }) => {
+const factionImageMap = {
+  'SoC': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FSoCFaction.png?alt=media',
+  'Aggression': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FaggressionFaction.png?alt=media',
+  'Alacrity': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2Falacrity.png?alt=media',
+  'Discipline': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FdisciplineFaction.png?alt=media',
+  'Drifter': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FdrifterFaction.png?alt=media',
+  'Fortitude': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FfortitudeFaction.png?alt=media',
+  'Iria': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FiriaFaction.png?alt=media',
+  'Night Crimson': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FnightCrimsonFaction.png?alt=media',
+  'Papal States': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FpapalStatesFaction.png?alt=media',
+  'The Union': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FunionFaction.png?alt=media',
+  'Vlder': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FvlderFaction.png?alt=media',
+};
+
+// Utility to map factions to images
+const getFactionImages = (factionString) => {
+  return factionString.split(',').map(faction => factionImageMap[faction.trim()]);
+};
+
+// Function to fetch characters from Firebase
+export const fetchCharacters = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, 'characters'));
+    const characters = querySnapshot.docs
+      .map((doc) => doc.data())
+      .filter(character => !unreleasedCharacters.includes(character.name));
+
+    return characters.map(character => ({
+      ...character,
+      roleImage: roleImageMap[character.role] || '',
+      factionImages: getFactionImages(character.faction),
+    }));
+  } catch (error) {
+    console.error('Error fetching characters:', error);
+    return [];
+  }
+};
+
+// CharacterList component to display characters
+const CharacterList = ({ onSelect, bannedCharacters = {}, player1Picks = [], player2Picks = [] }) => {
   const [allCharacters, setAllCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch characters from Firestore
   useEffect(() => {
-    const fetchCharacters = async () => {
-      const querySnapshot = await getDocs(collection(db, 'characters'));
-      const characters = querySnapshot.docs
-        .map((doc) => doc.data())
-        .filter(character => !unreleasedCharacters.includes(character.name)); // Exclude unreleased characters
-      
-      // Assign a role to each character, either from Firestore or dynamically
-      const charactersWithRoles = characters.map(character => {
-        // Assign a random role to each character if not already assigned
-        const randomRole = roles[Math.floor(Math.random() * roles.length)];
-        return { ...character, role: character.role || randomRole.name, roleImage: randomRole.imageUrl };
-      });
-
-      setAllCharacters(charactersWithRoles);
+    const loadCharacters = async () => {
+      const characters = await fetchCharacters();
+      setAllCharacters(characters);
       setLoading(false);
     };
 
-    fetchCharacters();
+    loadCharacters();
   }, []);
 
-  // Check if the character is banned or picked
-  const isCharacterBannedOrPicked = (character) => {
-    return (
-      bannedCharacters.player1?.name === character.name ||
-      bannedCharacters.player2?.name === character.name ||
-      player1Picks.some((pick) => pick.name === character.name) ||
-      player2Picks.some((pick) => pick.name === character.name)
-    );
-  };
+  const isCharacterBannedOrPicked = (character) => (
+    bannedCharacters.player1?.name === character.name ||
+    bannedCharacters.player2?.name === character.name ||
+    player1Picks.some(pick => pick.name === character.name) ||
+    player2Picks.some(pick => pick.name === character.name)
+  );
 
   if (loading) return <p>Loading characters...</p>;
 
   return (
     <div className="character-list-container">
-      <div className="characters-header">
-        <h2>Characters</h2>
-      </div>
       <div className="characters">
         {allCharacters.map((character, index) => (
-          <div
+          <CharacterCard
             key={index}
-            className={`character-card ${isCharacterBannedOrPicked(character) ? 'disabled' : ''}`}
-            onClick={() => !isCharacterBannedOrPicked(character) && onSelect(character)}
-          >
-            <img src={character.imageUrl} alt={character.name} />
-            <h3>{character.name}</h3>
-            {/* Display the role and role icon */}
-            <div className="character-role">
-              <img src={character.roleImage} alt={character.role} className="role-icon" />
-              <p>{character.role}</p>
-            </div>
-          </div>
+            character={character}
+            isBanned={isCharacterBannedOrPicked(character)} // Disable character if banned/picked
+            onClick={() => !isCharacterBannedOrPicked(character) && onSelect(character)} // Call onSelect if not banned/picked
+          />
         ))}
       </div>
     </div>

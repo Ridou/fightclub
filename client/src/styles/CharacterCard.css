@@ -1,0 +1,100 @@
+/* General character card styling */
+.character-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Ensure items are vertically centered */
+    padding: 7px;
+    border-radius: 10px;
+    cursor: pointer;
+    width: 100px; /* Adjust card width to ensure a uniform size */
+    height: 155px; /* Adjust card height */
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    background-color: inherit; /* Ensure the background is inherited from rarity class */
+}
+
+/* Hover effect for character card */
+.character-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3); /* Enhance shadow on hover */
+}
+
+/* Rare character with white to silver to light blue gradient and silver glow */
+.character-card.rare {
+    border: 2px solid transparent;
+    background: linear-gradient(to bottom, #ffffff, #d3d3d3, #b0c4de); 
+    box-shadow: 0 0 10px 4px rgba(192, 192, 192, 0.4);
+}
+
+.character-card.epic {
+    border: 2px solid transparent;
+    background: linear-gradient(to bottom, #f9f9f9, #f1c40f);
+    box-shadow: 0 0 10px 4px rgba(255, 255, 255, 0.4);
+    animation: yellow-glow 2s infinite;
+}
+
+@keyframes yellow-glow {
+    0% {
+        box-shadow: 0 0 15px 3px yellow;
+    }
+    50% {
+        box-shadow: 0 0 20px 5px yellow;
+    }
+    100% {
+        box-shadow: 0 0 15px 3px yellow;
+    }
+}
+
+/* Legendary character with customized rainbow glow effect */
+.character-card.legendary {
+    border: 2px solid transparent;
+    background: linear-gradient(to right, rgb(158, 227, 225), rgb(211, 153, 237), rgb(241, 231, 91));
+    box-shadow: 
+        0 0 10px 4px rgba(158, 227, 225, 0.4),
+        0 0 15px 8px rgba(211, 153, 237, 0.4),
+        0 0 20px 12px rgba(241, 231, 91, 0.4);
+}
+
+/* Disabled/Banned characters with retained background */
+.character-card.disabled {
+    border-color: red;
+    background-color: inherit; /* Retain the original gradient */
+    opacity: 0.7;
+    cursor: not-allowed;
+    box-shadow: 0 0 10px red; /* Red glow */
+}
+
+/* Character image */
+.character-image {
+    width: 90px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-bottom: 5px;
+}
+
+/* Character name */
+.character-card h3 {
+    font-size: 14px;
+    color: white;
+    text-align: center;
+    margin: 0;
+    padding: 5px 0 0 0;
+}
+
+/* Role and Faction Icons */
+.character-role-faction {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    display: flex;
+    align-items: center;
+}
+
+.role-icon, .faction-icon {
+    width: 20px !important;
+    height: 20px !important;
+    margin-left: 5px;
+    object-fit: contain;
+}

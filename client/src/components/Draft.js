@@ -1,26 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CharacterList from './CharacterList'; // Import CharacterList
-import '../styles/Draft.css'; // Assuming the styles are here
+import { saveUserTeam } from '../firebase'; // Firebase function to save team to Firestore
+import '../styles/Draft.css'; // Ensure the styles are here
 
-const Draft = () => {
-  const [player1Picks, setPlayer1Picks] = useState([]);
+const Draft = ({ user }) => {
+  const [player1Picks, setPlayer1Picks] = useState([]); // User's picks
   const [player2Picks, setPlayer2Picks] = useState([]);
   const [bannedCharacters, setBannedCharacters] = useState({ player1: null, player2: null });
-  const [currentPlayer, setCurrentPlayer] = useState(1);
+  const [currentPlayer, setCurrentPlayer] = useState(1); // User is player1
   const [banPhase, setBanPhase] = useState(true);
 
   // Handle banning and picking characters
   const handlePick = (character) => {
     if (banPhase) {
       if (currentPlayer === 1 && !bannedCharacters.player1) {
-        setBannedCharacters({ ...bannedCharacters, player1: character });
+        setBannedCharacters((prev) => ({ ...prev, player1: character }));
         setCurrentPlayer(2);
       } else if (currentPlayer === 2 && !bannedCharacters.player2) {
-        setBannedCharacters({ ...bannedCharacters, player2: character });
+        setBannedCharacters((prev) => ({ ...prev, player2: character }));
         setCurrentPlayer(1);
-        setBanPhase(false); // End ban phase after each player bans 1 character
+        setBanPhase(false); // End ban phase
       }
     } else {
+      // Picking phase logic
       if (currentPlayer === 1 && player1Picks.length < 5) {
         setPlayer1Picks([...player1Picks, character]);
         setCurrentPlayer(2);
@@ -32,23 +34,32 @@ const Draft = () => {
   };
 
   // Check if character is banned or already picked
-  const isCharacterDisabled = (character) => {
+  const isCharacterBannedOrPicked = (character) => {
     return (
-      bannedCharacters.player1?.name === character.name ||
-      bannedCharacters.player2?.name === character.name ||
+      bannedCharacters?.player1?.name === character.name ||
+      bannedCharacters?.player2?.name === character.name ||
       player1Picks.some((pick) => pick.name === character.name) ||
       player2Picks.some((pick) => pick.name === character.name)
     );
   };
 
-  // Create placeholders for picks
-  const createPlaceholders = (numPlaceholders, currentPicks) => {
-    const placeholders = [];
-    for (let i = 0; i < numPlaceholders - currentPicks.length; i++) {
-      placeholders.push(<div key={i} className="placeholder">Empty Slot</div>);
+  // Save the user's team after picking
+  const saveTeam = async () => {
+    try {
+      await saveUserTeam(user.uid, player1Picks); // Save user’s picks as their team
+      alert('Team saved successfully!');
+    } catch (error) {
+      console.error('Error saving team:', error);
+      alert('Failed to save the team.');
     }
-    return placeholders;
   };
+
+  useEffect(() => {
+    // Automatically save team when draft is completed
+    if (player1Picks.length === 5) {
+      saveTeam();
+    }
+  }, [player1Picks]);
 
   return (
     <div className="draft">
@@ -60,7 +71,7 @@ const Draft = () => {
       <div className="draft-container">
         {/* Left Panel - Player 1 Picks */}
         <div className="player-panel">
-          <h3>Player 1 Picks</h3>
+          <h3>Your Picks</h3>
           <div className="picks">
             {player1Picks.map((pick, index) => (
               <div key={index} className={`character-card ${pick.rarity}`}>
@@ -68,10 +79,8 @@ const Draft = () => {
                 <h3>{pick.name}</h3>
               </div>
             ))}
-            {createPlaceholders(5, player1Picks)}
           </div>
-
-          <h3>Banned Character</h3>
+          <h3>Your Banned Character</h3>
           <div className="banned">
             {bannedCharacters.player1 ? (
               <div className={`character-card ${bannedCharacters.player1.rarity}`}>
@@ -85,7 +94,9 @@ const Draft = () => {
         </div>
 
         {/* Character Selection Grid */}
-        <CharacterList onSelect={(character) => !isCharacterDisabled(character) && handlePick(character)} bannedCharacters={bannedCharacters} player1Picks={player1Picks} player2Picks={player2Picks} />
+        <CharacterList
+          onSelect={(character) => !isCharacterBannedOrPicked(character) && handlePick(character)}
+        />
 
         {/* Right Panel - Player 2 Picks */}
         <div className="player-panel">
@@ -97,10 +108,8 @@ const Draft = () => {
                 <h3>{pick.name}</h3>
               </div>
             ))}
-            {createPlaceholders(5, player2Picks)}
           </div>
-
-          <h3>Banned Character</h3>
+          <h3>Player 2 Banned Character</h3>
           <div className="banned">
             {bannedCharacters.player2 ? (
               <div className={`character-card ${bannedCharacters.player2.rarity}`}>

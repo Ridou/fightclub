@@ -72,60 +72,6 @@
     justify-content: center;
 }
 
-/* Character cards for both picks and bans */
-.character-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2px;
-    border: 2px solid #ccc;
-    border-radius: 15px;
-    background-color: #f9f9f9;
-    cursor: pointer;
-    width: 120px;
-    transition: transform 0.2s, border-color 0.2s;
-}
-
-/* Add glow effects for character rarity */
-.character-card.gold {
-    border: 2px solid gold;
-    box-shadow: 0 0 10px gold;
-}
-
-.character-card.legendary {
-    border: 2px solid orange;
-    box-shadow: 0 0 15px orange;
-}
-
-/* Character hover effect */
-.character-card:hover {
-    transform: scale(1.05);
-}
-
-/* Grayed out disabled card with red border for banned/picked characters */
-.character-card.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: red;
-}
-
-/* Character image */
-.character-card img {
-    width: 100px;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 8px;
-    margin-bottom: 5px;
-}
-
-/* Character name */
-.character-card h3 {
-    margin: 0;
-    font-size: 14px;
-    text-align: center;
-    color: #333;
-}
-
 /* Character selection grid */
 .characters {
     display: grid;
@@ -142,13 +88,4 @@
 /* Adjust spacing around the draft */
 .draft-container {
     padding: 20px;
-}
-
-/* Additional style for picked and banned character highlight */
-.character-card.banned,
-.character-card.picked {
-    opacity: 0.7;
-    border-color: red;
-    box-shadow: 0px 0px 10px red;
-    transform: scale(1.05);
 }
