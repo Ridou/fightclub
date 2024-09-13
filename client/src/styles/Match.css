@@ -1,0 +1,76 @@
+/* match.css */
+
+/* Queue container */
+.match {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: #0c0f13;
+    color: #ffffff;
+    font-family: 'Roboto', sans-serif;
+}
+
+h2 {
+    font-size: 36px;
+    color: #9147ff;
+    margin-bottom: 20px;
+}
+
+/* Queue information card */
+.queue-card {
+    background-color: #1a1d23;
+    border-radius: 15px;
+    padding: 40px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7);
+    text-align: center;
+    width: 60%;
+}
+
+.queue-card p {
+    font-size: 24px;
+    margin: 10px 0;
+}
+
+.queue-card .player-status {
+    font-size: 28px;
+    color: #d4af37; /* Golden for "waiting..." status */
+}
+
+.queue-card .queue-count {
+    font-size: 20px;
+    color: #c4c4c4;
+}
+
+.queue-card .fight-now-button {
+    background-color: #9147ff;
+    border: none;
+    padding: 15px 40px;
+    font-size: 18px;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 20px;
+}
+
+.queue-card .fight-now-button:hover {
+    background-color: #772ce8;
+}
+
+/* Loading animation */
+.queue-loader {
+    margin-top: 20px;
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #9147ff;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

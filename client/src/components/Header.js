@@ -1,9 +1,8 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import '../styles/Header.css'; // Import the Header CSS
 
-const Header = ({ user, inGameName, handleLogout }) => {
+const Header = ({ user, inGameName, team, handleLogout }) => {
   const navigate = useNavigate(); // Use useNavigate instead of useHistory
 
   // Handle the Fight Now logic
@@ -13,21 +12,26 @@ const Header = ({ user, inGameName, handleLogout }) => {
       return;
     }
 
-    // Check if the user has a team saved
-    axios.get(`/api/getTeam/${user.uid}`)
-      .then((response) => {
-        if (response.data.team && response.data.team.length === 12) {
-          // Navigate to the matchmaking queue
-          navigate('/matchmaking');
-        } else {
-          alert('You need to set up your team before fighting!');
-          navigate('/account');
-        }
-      })
-      .catch(() => {
-        alert('Error retrieving team');
-        navigate('/account');
-      });
+    // Log the values to ensure we're getting the correct data
+    console.log('User:', user);
+    console.log('In-Game Name:', inGameName);
+    console.log('Team:', team);
+
+    // Check if the in-game name is set and team has 12 members
+    if (!inGameName || inGameName.trim() === '') {
+      alert('Please set your in-game username before fighting!');
+      navigate('/account'); // Redirect to account page for username setup
+      return;
+    }
+
+    if (!team || team.length !== 12) {
+      alert('You need to create a full 12-man team before fighting!');
+      navigate('/account'); // Redirect to account page for team setup
+      return;
+    }
+
+    // If both username and team are set, navigate to the match page
+    navigate('/match');
   };
 
   return (
@@ -41,7 +45,6 @@ const Header = ({ user, inGameName, handleLogout }) => {
           <li><Link to="/characters">Characters</Link></li>
           <li><Link to="/draft">Draft</Link></li>
           <li><Link to="/ladder">Ladder</Link></li>
-          <li><Link to="/match">Match</Link></li> {/* New Match link to the queue */}
         </ul>
       </nav>
       <div className="user-info">

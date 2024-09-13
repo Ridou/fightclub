@@ -13,19 +13,22 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore';
 function App() {
   const [user, setUser] = useState(null); // Store user account info
   const [inGameName, setInGameName] = useState(''); // Store the in-game name
+  const [team, setTeam] = useState([]); // Store the user's team
   const [loading, setLoading] = useState(true);
 
   const db = getFirestore(); // Firestore reference
 
-  // Fetch the in-game name from Firestore
-  const fetchInGameName = async (uid) => {
+  // Fetch the user details (in-game name and team) from Firestore
+  const fetchUserDetails = async (uid) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid)); // Assuming you store the user data under 'users' collection
       if (userDoc.exists()) {
-        setInGameName(userDoc.data().inGameName);
+        const userData = userDoc.data();
+        setInGameName(userData.inGameName);
+        setTeam(userData.team || []); // Fetch the team or default to an empty array
       }
     } catch (error) {
-      console.error('Error fetching in-game name:', error);
+      console.error('Error fetching user details:', error);
     }
   };
 
@@ -36,6 +39,7 @@ function App() {
       await auth.signOut();
       setUser(null);
       setInGameName(''); // Clear the in-game name
+      setTeam([]); // Clear the team
     } catch (error) {
       console.error("Error logging out:", error);
     }
@@ -47,7 +51,7 @@ function App() {
       setLoading(true);
       const { user } = await loginWithGoogle();
       setUser(user);
-      fetchInGameName(user.uid); // Fetch the in-game name after login
+      fetchUserDetails(user.uid); // Fetch user details after login
     } catch (error) {
       console.error("Error during login:", error);
     } finally {
@@ -60,7 +64,7 @@ function App() {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        fetchInGameName(currentUser.uid); // Fetch in-game name on reload
+        fetchUserDetails(currentUser.uid); // Fetch user details on reload
       }
       setLoading(false);
     });
@@ -72,7 +76,7 @@ function App() {
 
   return (
     <div className="App">
-      <Header user={user} inGameName={inGameName} handleLogout={handleLogout} />
+      <Header user={user} inGameName={inGameName} team={team} handleLogout={handleLogout} /> {/* Pass team and inGameName */}
 
       {!user ? (
         <>
