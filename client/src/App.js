@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { io } from 'socket.io-client'; // Import socket.io client
 import Ladder from './components/Ladder';
 import Draft from './components/Draft';
 import CharacterList from './components/CharacterList';
@@ -16,6 +17,7 @@ function App() {
   const [team, setTeam] = useState([]); // Store the user's team
   const [queueCount, setQueueCount] = useState(0); // Store queue count
   const [loading, setLoading] = useState(true); // Loading state
+  const [socket, setSocket] = useState(null); // Store WebSocket connection
 
   const db = getFirestore(); // Firestore reference
 
@@ -60,6 +62,27 @@ function App() {
     }
   };
 
+  // WebSocket connection initialization
+  useEffect(() => {
+    const newSocket = io('http://localhost:5000', {
+      transports: ['websocket'], // Force WebSocket transport to avoid polling
+    });
+    setSocket(newSocket);
+
+    newSocket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    newSocket.on('updateDraft', (data) => {
+      console.log('Draft update received:', data);
+    });
+
+    // Cleanup the socket connection on unmount
+    return () => {
+      newSocket.close();
+    };
+  }, []);
+
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -103,7 +126,7 @@ function App() {
           <Routes>
             <Route path="/account" element={<AccountPage user={user} />} /> {/* Updated to use AccountPage */}
             <Route path="/characters" element={<CharacterList />} />
-            <Route path="/draft" element={<Draft user={user} />} /> {/* Ensure user is passed */}
+            <Route path="/draft" element={<Draft user={user} socket={socket} />} /> {/* Pass the socket to Draft */}
             <Route 
               path="/match" 
               element={<Match user={user} handleQueueUpdate={handleQueueUpdate} />} // Pass user and queue update

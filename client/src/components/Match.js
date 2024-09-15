@@ -1,107 +1,81 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDatabase, ref, set, onValue, remove } from 'firebase/database';
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase'; // Ensure you import Firestore instance
 
-const Match = ({ user, handleQueueUpdate }) => {
+const Match = ({ user }) => {
   const navigate = useNavigate();
-  const [queueCount, setQueueCount] = useState(0);
-  const [waiting, setWaiting] = useState(true);
   const [matchedPlayer, setMatchedPlayer] = useState(null);
-  const db = getDatabase(); // Initialize Firebase Realtime Database
 
-  // Function to add user to the global queue
-  const joinQueue = () => {
-    const userQueueRef = ref(db, `queue/${user.uid}`);
-    set(userQueueRef, {
-      uid: user.uid,
-      inGameName: user.displayName || 'Player',
-    });
+  // Function to add the user to the queue in Firestore
+  const joinQueue = async () => {
+    try {
+      console.log(`Attempting to add ${user.displayName || 'Player'} (${user.uid}) to the queue.`);
+      const queueRef = doc(db, `queue/${user.uid}`);
+      await setDoc(queueRef, { uid: user.uid, inGameName: user.displayName || 'Player' });
+      console.log(`${user.displayName || 'Player'} successfully added to the queue.`);
+    } catch (error) {
+      console.error('Error adding player to the queue:', error);
+    }
   };
 
-  // Function to match with another player from the queue
-  const matchPlayer = () => {
-    const queueRef = ref(db, 'queue/');
-    onValue(queueRef, (snapshot) => {
-      const queueData = snapshot.val();
+  // Listen to the queue in real-time for updates
+  useEffect(() => {
+    console.log(`User ${user.displayName || 'Player'} (${user.uid}) joined the queue.`);
 
-      // Look for another player in the queue
-      if (queueData) {
-        const playerIds = Object.keys(queueData);
-        const otherPlayerId = playerIds.find((id) => id !== user.uid);
+    joinQueue();
 
-        if (otherPlayerId) {
-          const otherPlayer = queueData[otherPlayerId];
-          setMatchedPlayer(otherPlayer);
+    const queueRef = collection(db, 'queue');
+    const unsubscribe = onSnapshot(queueRef, (snapshot) => {
+      const queueData = snapshot.docs.map((doc) => doc.data());
+      console.log('Real-time queue data:', queueData);
 
-          // Remove both players from the queue
-          remove(ref(db, `queue/${user.uid}`));
-          remove(ref(db, `queue/${otherPlayerId}`));
+      if (queueData.length > 1) {
+        const opponent = queueData.find((player) => player.uid !== user.uid);
+        if (opponent) {
+          console.log(`Match found: ${opponent.inGameName || 'Player'} (${opponent.uid})`);
+          setMatchedPlayer(opponent);
 
-          setWaiting(false); // Stop waiting once a match is found
+          // Remove both players from the queue once matched
+          deleteDoc(doc(db, `queue/${user.uid}`));
+          deleteDoc(doc(db, `queue/${opponent.uid}`));
+          console.log(`Both players (${user.uid} and ${opponent.uid}) removed from the queue.`);
         }
+      } else {
+        console.log('Not enough players in the queue.');
       }
     });
-  };
 
-  // Effect to add user to queue and start searching for a match
-  useEffect(() => {
-    if (user) {
-      joinQueue();
-      matchPlayer();
-    }
+    return () => {
+      unsubscribe(); // Unsubscribe from real-time updates when component unmounts
+    };
   }, [user]);
 
-  // Create the draft room once a match is found
+  // Navigate to the draft once a match is found
   useEffect(() => {
-    if (matchedPlayer && user) {
-      const draftRoomId = `draft-${user.uid}-${matchedPlayer.uid}`;
-      const draftRoomRef = ref(db, `draftRooms/${draftRoomId}`);
+    if (matchedPlayer) {
+      console.log(`Navigating to draft with ${matchedPlayer.inGameName || 'Player'} (${matchedPlayer.uid})...`);
+      const serializableUser = {
+        uid: user.uid,
+        inGameName: user.displayName || 'Player 1',
+      };
+      const serializableOpponent = {
+        uid: matchedPlayer.uid,
+        inGameName: matchedPlayer.inGameName || 'Player 2',
+      };
 
-      set(draftRoomRef, {
-        player1: {
-          uid: user.uid,
-          inGameName: user.displayName || user.inGameName || 'Player 1',
+      navigate('/draft', {
+        state: {
+          player1: serializableUser,
+          player2: serializableOpponent,
         },
-        player2: {
-          uid: matchedPlayer.uid,
-          inGameName: matchedPlayer.inGameName || 'Player 2',
-        },
-        currentTurn: 1, // Player 1 starts
-        bannedCharacters: { player1: null, player2: null },
-        player1Picks: [],
-        player2Picks: [],
-      })
-        .then(() => {
-          // Navigate to draft page with both player IDs and in-game names
-          navigate('/draft', {
-            state: {
-              draftRoomId,
-              player1: {
-                uid: user.uid,
-                inGameName: user.displayName || user.inGameName || 'Player 1',
-              },
-              player2: {
-                uid: matchedPlayer.uid,
-                inGameName: matchedPlayer.inGameName || 'Player 2',
-              },
-            },
-          });
-        })
-        .catch((error) => {
-          console.error("Error creating draft room in Firebase:", error);
-        });
+      });
     }
   }, [matchedPlayer, user, navigate]);
 
-  if (!user) {
-    return <p>Loading user information...</p>;
-  }
-
   return (
-    <div className="match">
-      <h2>Match Started</h2>
-      <p>Players in queue: {queueCount}</p>
-      {waiting && <p>Waiting for an opponent...</p>}
+    <div>
+      <h2>Waiting for an opponent...</h2>
     </div>
   );
 };
