@@ -1,121 +1,126 @@
-/* Center the entire draft phase */
+/* General layout for the draft page */
 .draft {
     text-align: center;
     margin-top: 20px;
     background-color: #1a1a1a;
     padding: 20px;
-    border-radius: 12px;
+    border-radius: 8px;
     color: #ffffff;
-    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.5);
 }
 
-/* Styling for the 1v1 Draft heading */
-.draft-header h2 {
-    font-size: 36px;
-    font-weight: bold;
-    color: #9147ff;
+.draft-header {
     margin-bottom: 20px;
-    text-transform: uppercase;
-    background-color: #262626;
-    padding: 15px;
-    border-radius: 10px;
-    width: fit-content;
-    margin: 0 auto;
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5);
 }
 
-/* Main container for the draft (3 columns) */
 .draft-container {
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-columns: 1fr 0.5fr 2fr 0.5fr 1fr;
     gap: 20px;
-    padding: 40px;
+    align-items: start;
+    padding: 0 40px;
     background-color: #1f1f1f;
-    border-radius: 12px;
-    box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.7);
 }
 
-/* Player panel */
-.player-panel {
+/* Team Panel - each team's characters */
+.team-panel {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 20px;
+    justify-content: flex-start;
+    padding: 10px;
     background-color: #333333;
-    border-radius: 12px;
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.7);
 }
 
-/* Picks and Bans */
-.player-picks h3, .banned h3 {
-    font-size: 24px;
-    margin-bottom: 20px;
-    color: #9147ff;
-}
-
-/* Display picks and bans */
-.picks, .banned {
+/* 4 columns by 3 rows for team characters */
+.team-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 15px;
     justify-content: center;
-}
-
-/* Pick/Ban character card */
-.character-card {
-    width: 120px;
-    height: 160px;
-    background-color: #262626;
-    border: 2px solid transparent;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    transition: border-color 0.3s ease;
-    cursor: pointer;
-}
-
-.character-card img {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.character-card h3 {
     margin-top: 10px;
-    font-size: 16px;
-    color: #9147ff;
 }
 
-.character-card:hover {
-    border-color: #9147ff;
+/* Deployed characters panel next to the teams */
+.deployed-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #262626;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.7);
 }
 
-/* Central Display for Turn */
-.central-display {
+/* Styling for deployed character cards */
+.deployed-panel .character-card {
+    width: 110px;
+    height: 70px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    background-color: #262626;
+    background-color: inherit; /* Inherit background color from the rarity */
     border-radius: 10px;
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5);
-    color: #ffffff;
+}
+
+/* Middle panel for timer, map, and turn info */
+.middle-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #262626;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.7);
+}
+
+.map {
+    width: 200px;
+    height: auto;
+    max-width: 100%;
+    border-radius: 10px;
+}
+
+.turn-indicator {
+    color: #9147ff;
+    font-weight: bold;
     font-size: 20px;
+}
+
+.timer {
+    color: red;
     font-weight: bold;
 }
 
-/* Character selection grid */
-.characters {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 15px;
-    justify-items: center;
-    margin-top: 20px;
-    padding: 0 20px;
+/* Placeholder for deployable slots */
+.character-card .placeholder {
+    width: 107px;
+    height: 190px;
+    border: 2px dashed #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+    font-size: 14px;
 }
 
+/* Banned characters */
+.character-card.banned {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .deployed-panel {
+        position: static;
+        transform: none;
+        margin-top: 20px;
+    }
+}

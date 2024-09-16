@@ -4,11 +4,11 @@
     flex-direction: column;
     align-items: center;
     justify-content: center; /* Ensure items are vertically centered */
-    padding: 7px;
+    padding-top: 20px;
     border-radius: 10px;
     cursor: pointer;
     width: 100px; /* Adjust card width to ensure a uniform size */
-    height: 155px; /* Adjust card height */
+    height: 120px; /* Adjust card height */
     transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
     position: relative;
     background-color: inherit; /* Ensure the background is inherited from rarity class */
@@ -74,13 +74,14 @@
     margin-bottom: 5px;
 }
 
+
 /* Character name */
 .character-card h3 {
-    font-size: 14px;
+    font-size: 11px;
+    font-weight:bold;
     color: white;
     text-align: center;
-    margin: 0;
-    padding: 5px 0 0 0;
+    margin-top: -9px;
 }
 
 /* Role and Faction Icons */
