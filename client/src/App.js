@@ -7,9 +7,8 @@ import CharacterList from './components/CharacterList';
 import Header from './components/Header';
 import Match from './components/Match';
 import AccountPage from './pages/AccountPage'; // Import AccountPage
-import { loginWithGoogle } from './firebase';
+import { loginWithGoogle, getUserProfile } from './firebase'; // Import getUserProfile
 import { getAuth } from "firebase/auth";
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 function App() {
   const [user, setUser] = useState(null); // Store user account info
@@ -19,14 +18,11 @@ function App() {
   const [loading, setLoading] = useState(true); // Loading state
   const [socket, setSocket] = useState(null); // Store WebSocket connection
 
-  const db = getFirestore(); // Firestore reference
-
-  // Fetch the user details (in-game name and team) from Firestore
+  // Fetch the user details (in-game name and team) from Firestore with caching
   const fetchUserDetails = async (uid) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', uid)); // Assuming you store the user data under 'users' collection
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      const userData = await getUserProfile(uid); // Use the cached data function
+      if (userData) {
         setInGameName(userData.inGameName);
         setTeam(userData.team || []); // Fetch the team or default to an empty array
       }

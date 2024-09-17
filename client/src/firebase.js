@@ -1,5 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore"; // Firestore methods
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  enableIndexedDbPersistence,  // Enables offline persistence
+  onSnapshot // Used to listen for real-time updates
+} from "firebase/firestore"; // Firestore methods
 import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 // Firebase configuration (use your .env configuration)
@@ -17,6 +24,16 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 export const db = getFirestore(app); // Initialize Firestore
+
+// Enable Firestore offline persistence to reduce read quota
+enableIndexedDbPersistence(db)
+  .catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+    } else if (err.code === 'unimplemented') {
+      console.log('The current browser does not support offline persistence.');
+    }
+  });
 
 // Google login function using popup
 export const loginWithGoogle = async () => {
@@ -40,15 +57,25 @@ export const saveUserProfile = async (userId, profileData) => {
   }
 };
 
-// Get user profile from Firestore
+// Get user profile from Firestore with caching
 export const getUserProfile = async (userId) => {
   try {
-    const userDoc = await getDoc(doc(db, "users", userId));
-    if (userDoc.exists()) {
-      return userDoc.data();
-    } else {
-      return null;
-    }
+    const userDocRef = doc(db, "users", userId);
+
+    // Use Firestore's snapshot listener to get the cached data first, then update with server data if available
+    return new Promise((resolve, reject) => {
+      onSnapshot(userDocRef, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data();
+          resolve(data); // Return cached or updated data
+        } else {
+          reject('No user profile found');
+        }
+      }, (error) => {
+        console.error("Error fetching user profile from Firestore:", error);
+        reject(error);
+      });
+    });
   } catch (error) {
     console.error("Error fetching user profile from Firestore:", error);
     throw error;
