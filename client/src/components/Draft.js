@@ -10,13 +10,13 @@ const socket = io('http://localhost:5000');
 
 const Draft = ({ user }) => {
   const location = useLocation();
-  const { player1, player2 } = location.state;
+  const { player1, player2, draftRoomId } = location.state; // Pre-assigned player roles
 
   const [player1Team, setPlayer1Team] = useState([]);
   const [player2Team, setPlayer2Team] = useState([]);
   const [player1Deployed, setPlayer1Deployed] = useState([]);
   const [player2Deployed, setPlayer2Deployed] = useState([]);
-  const [bannedCharacters, setBannedCharacters] = useState({ player1: [], player2: [] }); // Set default as empty arrays
+  const [bannedCharacters, setBannedCharacters] = useState({ player1: [], player2: [] });
   const [currentTurn, setCurrentTurn] = useState(1);
   const [banPhase, setBanPhase] = useState(true);
   const [isPlayerTurn, setIsPlayerTurn] = useState(false);
@@ -24,35 +24,24 @@ const Draft = ({ user }) => {
 
   const maxDeployed = 5;
 
-  const draftRoomId = `${player1.uid}-${player2.uid}`;
-
-  // Fetch Teams from Firestore
+  // Fetch teams from Firebase
   const fetchTeams = async () => {
     try {
       const player1DocRef = doc(db, 'users', player1.uid);
       const player2DocRef = doc(db, 'users', player2.uid);
-  
+
       const player1TeamDoc = await getDoc(player1DocRef);
       const player2TeamDoc = await getDoc(player2DocRef);
-  
+
       if (player1TeamDoc.exists() && player2TeamDoc.exists()) {
         const player1Data = player1TeamDoc.data();
         const player2Data = player2TeamDoc.data();
-  
+
         setPlayer1Team(player1Data.team);
         setPlayer2Team(player2Data.team);
-  
-        // Always set the correct in-game names from Firestore
-        if (!player1.inGameName || player1.inGameName !== player1Data.inGameName) {
-          player1.inGameName = player1Data.inGameName;
-        }
-        if (!player2.inGameName || player2.inGameName !== player2Data.inGameName) {
-          player2.inGameName = player2Data.inGameName;
-        }
-  
-        console.log('Player 1 In-Game Name:', player1.inGameName);
-        console.log('Player 2 In-Game Name:', player2.inGameName);
-  
+
+        console.log('Player 1:', player1);
+        console.log('Player 2:', player2);
       } else {
         console.error('Error: One or both teams do not exist in Firestore.');
       }
@@ -60,30 +49,42 @@ const Draft = ({ user }) => {
       console.error('Error fetching teams from Firebase:', error);
     }
   };
-  
 
+  // Listen for server updates and determine turn
   useEffect(() => {
     fetchTeams();
 
-    socket.emit('joinRoom', { draftRoomId, userId: user.uid });
+    // Join the room with the assigned player1 and player2 roles
+    socket.emit('joinRoom', { draftRoomId, userId: user.uid, player1, player2 });
 
+    // Receive updates from the server
     socket.on('updateDraft', (data) => {
+      console.log('Received updateDraft:', data);
+
+      // Update deployed characters and banned characters
       setPlayer1Deployed(data.player1Deployed || []);
       setPlayer2Deployed(data.player2Deployed || []);
       setBannedCharacters(data.bannedCharacters || { player1: [], player2: [] });
       setCurrentTurn(data.currentTurn);
       setBanPhase(data.banPhase);
-      setTimer(60);
+      setTimer(60); // Reset timer every time a move is made
 
-      const isPlayerTurnNow = (data.players.player1 === user.uid && data.currentTurn === 1) || 
-                              (data.players.player2 === user.uid && data.currentTurn === 2);
+      // Ensure the correct player is allowed to take a turn
+      const isPlayer1 = data.players.player1 === user.uid;
+      const isPlayer2 = data.players.player2 === user.uid;
+
+      // Compare the currentTurn with the player's uid
+      const isPlayerTurnNow = (isPlayer1 && data.currentTurn === 1) || (isPlayer2 && data.currentTurn === 2);
       setIsPlayerTurn(isPlayerTurnNow);
+
+      console.log('Is it player turn:', isPlayerTurnNow, 'Current turn:', data.currentTurn);
     });
 
     const timerInterval = setInterval(() => {
-      if (timer > 0) {
-        setTimer((prevTimer) => prevTimer - 1);
-      }
+      setTimer((prevTimer) => {
+        if (prevTimer > 0) return prevTimer - 1;
+        return 0;
+      });
     }, 1000);
 
     return () => {
@@ -91,48 +92,26 @@ const Draft = ({ user }) => {
       socket.off('updateDraft');
       clearInterval(timerInterval);
     };
-  }, [draftRoomId, user, timer]);
+  }, [draftRoomId, user]);
 
+  // Handle pick or ban action
   const handlePickOrBan = (character) => {
     if (!isPlayerTurn) {
-      console.log('Not your turn!');  // Prevents non-active player from clicking
+      console.log('Not your turn');
       return;
     }
-  
-    if (banPhase) {
-      // Handle ban phase logic: Ban a character for the current player
-      socket.emit('makeMove', {
-        draftRoomId,
-        userId: user.uid,
-        character,
-        phase: 'ban',
-        player1,
-        player2,
-      });
-    } else {
-      // Handle pick phase logic: Add a character to the deployable team
-      if (currentTurn === 1) {
-        if (player1Deployed.length < maxDeployed) {
-          setPlayer1Deployed([...player1Deployed, character]); // Add character to deployable team
-        }
-      } else if (currentTurn === 2) {
-        if (player2Deployed.length < maxDeployed) {
-          setPlayer2Deployed([...player2Deployed, character]); // Add character to deployable team
-        }
-      }
-  
-      // Emit pick move to server
-      socket.emit('makeMove', {
-        draftRoomId,
-        userId: user.uid,
-        character,
-        phase: 'pick',
-        player1,
-        player2,
-      });
-    }
+
+    // Emit move to server
+    socket.emit('makeMove', {
+      draftRoomId,
+      userId: user.uid,
+      character,
+      phase: banPhase ? 'ban' : 'pick',
+    });
+    console.log('Move made:', character);
   };
 
+  // Render deployed characters
   const renderDeployed = (deployedTeam) => {
     const deployedSlots = [...deployedTeam];
     while (deployedSlots.length < maxDeployed) {
@@ -155,17 +134,17 @@ const Draft = ({ user }) => {
       </div>
 
       <div className="draft-container">
-        
         {/* Player 1 Team and Deploy Panel */}
         <div className="team-panel">
-          <h3>{player1.inGameName || 'Player 1'}</h3> {/* Ensure inGameName is shown */}
+          <h3>{player1.inGameName || 'Player 1'}</h3>
           <div className="team-grid">
             {player1Team.map((character, index) => (
               <CharacterCard
                 key={index}
                 character={character}
-                isBanned={Array.isArray(bannedCharacters.player1) && bannedCharacters.player1.includes(character.name)}
+                isBanned={bannedCharacters.player1.includes(character.name)} // Disable banned characters
                 onClick={() => handlePickOrBan(character)}
+                disabled={!isPlayerTurn || bannedCharacters.player1.includes(character.name)} // Disable if not player's turn or banned
               />
             ))}
           </div>
@@ -191,21 +170,21 @@ const Draft = ({ user }) => {
           <h3>Deployable Team</h3>
           {renderDeployed(player2Deployed)}
         </div>
-        
+
         <div className="team-panel">
-          <h3>{player2.inGameName || 'Player 2'}</h3> {/* Ensure inGameName is shown */}
+          <h3>{player2.inGameName || 'Player 2'}</h3>
           <div className="team-grid">
             {player2Team.map((character, index) => (
               <CharacterCard
                 key={index}
                 character={character}
-                isBanned={Array.isArray(bannedCharacters.player2) && bannedCharacters.player2.includes(character.name)}
+                isBanned={bannedCharacters.player2.includes(character.name)} // Disable banned characters
                 onClick={() => handlePickOrBan(character)}
+                disabled={!isPlayerTurn || bannedCharacters.player2.includes(character.name)} // Disable if not player's turn or banned
               />
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );

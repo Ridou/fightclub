@@ -116,6 +116,13 @@
     pointer-events: none;
   }
 
+.team-panel, .deployed-panel {
+    background-color: #333; /* Dark background to match the draft theme */
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.7);
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
     .deployed-panel {

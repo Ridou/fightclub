@@ -63,6 +63,7 @@
     opacity: 0.7;
     cursor: not-allowed;
     box-shadow: 0 0 10px red; /* Red glow */
+    pointer-events:none;
 }
 
 /* Character image */

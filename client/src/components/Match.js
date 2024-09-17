@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase'; // Ensure you import Firestore instance
+import { db } from '../firebase';
+import { v4 as uuidv4 } from 'uuid'; // For generating unique draft room IDs
 
 const Match = ({ user }) => {
   const navigate = useNavigate();
   const [matchedPlayer, setMatchedPlayer] = useState(null);
+  const [draftRoomId, setDraftRoomId] = useState(null); // Track draft room ID
 
   // Function to add the user to the queue in Firestore
   const joinQueue = async () => {
@@ -21,8 +23,6 @@ const Match = ({ user }) => {
 
   // Listen to the queue in real-time for updates
   useEffect(() => {
-    console.log(`User ${user.displayName || 'Player'} (${user.uid}) joined the queue.`);
-
     joinQueue();
 
     const queueRef = collection(db, 'queue');
@@ -36,10 +36,27 @@ const Match = ({ user }) => {
           console.log(`Match found: ${opponent.inGameName || 'Player'} (${opponent.uid})`);
           setMatchedPlayer(opponent);
 
+          // Create a unique draft room ID for each match
+          const roomId = uuidv4();
+          setDraftRoomId(roomId);
+
+          // Assign player roles based on UID
+          const player1 = user.uid < opponent.uid ? { uid: user.uid, inGameName: user.displayName || 'Player 1' } : { uid: opponent.uid, inGameName: opponent.inGameName || 'Player 1' };
+          const player2 = user.uid > opponent.uid ? { uid: user.uid, inGameName: user.displayName || 'Player 2' } : { uid: opponent.uid, inGameName: opponent.inGameName || 'Player 2' };
+
           // Remove both players from the queue once matched
           deleteDoc(doc(db, `queue/${user.uid}`));
           deleteDoc(doc(db, `queue/${opponent.uid}`));
           console.log(`Both players (${user.uid} and ${opponent.uid}) removed from the queue.`);
+
+          // Navigate to the draft with player1 and player2 assigned
+          navigate('/draft', {
+            state: {
+              player1,
+              player2,
+              draftRoomId: roomId, // Pass the unique room ID to Draft
+            },
+          });
         }
       } else {
         console.log('Not enough players in the queue.');
@@ -50,28 +67,6 @@ const Match = ({ user }) => {
       unsubscribe(); // Unsubscribe from real-time updates when component unmounts
     };
   }, [user]);
-
-  // Navigate to the draft once a match is found
-  useEffect(() => {
-    if (matchedPlayer) {
-      console.log(`Navigating to draft with ${matchedPlayer.inGameName || 'Player'} (${matchedPlayer.uid})...`);
-      const serializableUser = {
-        uid: user.uid,
-        inGameName: user.displayName || 'Player 1',
-      };
-      const serializableOpponent = {
-        uid: matchedPlayer.uid,
-        inGameName: matchedPlayer.inGameName || 'Player 2',
-      };
-
-      navigate('/draft', {
-        state: {
-          player1: serializableUser,
-          player2: serializableOpponent,
-        },
-      });
-    }
-  }, [matchedPlayer, user, navigate]);
 
   return (
     <div>
