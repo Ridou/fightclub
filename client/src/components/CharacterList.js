@@ -1,27 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { initializeApp } from 'firebase/app';
+import { collection, getDocs } from 'firebase/firestore'; // Import Firestore methods
+import { db } from '../firebase'; // Import the initialized Firestore instance from firebase.js
 import CharacterCard from './CharacterCard'; // Import the CharacterCard component
 import '../styles/CharacterList.css'; // Assuming styles will go here
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
+// List of unreleased characters
 const unreleasedCharacters = [
   'Acambe', 'Agatha', 'Auguste', 'Caris', 'Cocoa', 'Col', 'Hasna', 'Homa', 
   'Layla', 'Pamina', 'Safiyyah', 'Schacklulu', 'Taair', 'Tristan'
 ];
 
+// Role images map
 const roleImageMap = {
   Watcher: 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/roles%2FSoC_Watcher.webp?alt=media',
   Seeker: 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/roles%2FSoC_Seeker.webp?alt=media',
@@ -30,6 +19,7 @@ const roleImageMap = {
   Destroyer: 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/roles%2FSoC_Destroyer.webp?alt=media',
 };
 
+// Faction images map
 const factionImageMap = {
   'SoC': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FSoCFaction.png?alt=media',
   'Aggression': 'https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/factions%2FaggressionFaction.png?alt=media',
@@ -49,7 +39,7 @@ const getFactionImages = (factionString) => {
   return factionString.split(',').map(faction => factionImageMap[faction.trim()]);
 };
 
-// Function to fetch characters from Firebase
+// Function to fetch characters from Firestore
 export const fetchCharacters = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, 'characters'));

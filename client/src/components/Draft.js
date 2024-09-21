@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import io from 'socket.io-client';
-import { db } from '../firebase';
-import { doc, getDoc } from "firebase/firestore";
+import { useQuery } from '@tanstack/react-query';
+import { rtdb } from '../firebase'; // Realtime Database
+import { ref, onValue, update } from "firebase/database"; // Realtime Database methods
+import { getUserProfile } from '../firebase'; // Import Firestore functions
+import CharacterCard from './CharacterCard';
 import '../styles/Draft.css';
-import CharacterCard from './CharacterCard'; // Import the character card component
-
-const socket = io('http://localhost:5000');
 
 const Draft = ({ user }) => {
   const location = useLocation();
-  const { player1, player2, draftRoomId } = location.state; // Pre-assigned player roles
+  const { player1, player2, draftRoomId } = location.state;
 
-  const [player1Team, setPlayer1Team] = useState([]);
-  const [player2Team, setPlayer2Team] = useState([]);
   const [player1Deployed, setPlayer1Deployed] = useState([]);
   const [player2Deployed, setPlayer2Deployed] = useState([]);
   const [bannedCharacters, setBannedCharacters] = useState({ player1: [], player2: [] });
@@ -24,108 +21,92 @@ const Draft = ({ user }) => {
 
   const maxDeployed = 5;
 
-  // Fetch teams from Firebase
-  const fetchTeams = async () => {
-    try {
-      const player1DocRef = doc(db, 'users', player1.uid);
-      const player2DocRef = doc(db, 'users', player2.uid);
-
-      const player1TeamDoc = await getDoc(player1DocRef);
-      const player2TeamDoc = await getDoc(player2DocRef);
-
-      if (player1TeamDoc.exists() && player2TeamDoc.exists()) {
-        const player1Data = player1TeamDoc.data();
-        const player2Data = player2TeamDoc.data();
-
-        setPlayer1Team(player1Data.team);
-        setPlayer2Team(player2Data.team);
-
-        console.log('Player 1:', player1);
-        console.log('Player 2:', player2);
-      } else {
-        console.error('Error: One or both teams do not exist in Firestore.');
-      }
-    } catch (error) {
-      console.error('Error fetching teams from Firebase:', error);
-    }
+  // Fetch team data from Firestore
+  const fetchTeam = async (uid) => {
+    return await getUserProfile(uid);
   };
 
-  // Listen for server updates and determine turn
-  useEffect(() => {
-    fetchTeams();
+  // Use TanStack Query to fetch teams
+  const { data: player1Data, isLoading: isLoadingP1, error: errorP1 } = useQuery({
+    queryKey: ['team', player1.uid],
+    queryFn: () => fetchTeam(player1.uid)
+  });
 
-    // Join the room with the assigned player1 and player2 roles
-    socket.emit('joinRoom', { draftRoomId, userId: user.uid, player1, player2 });
+  const { data: player2Data, isLoading: isLoadingP2, error: errorP2 } = useQuery({
+    queryKey: ['team', player2.uid],
+    queryFn: () => fetchTeam(player2.uid)
+  });
 
-    // Receive updates from the server
-    socket.on('updateDraft', (data) => {
-      console.log('Received updateDraft:', data);
+  // Handle Realtime Database for real-time synchronization
+useEffect(() => {
+  const draftRoomRef = ref(rtdb, `draftRooms/${draftRoomId}`);
 
-      // Update deployed characters and banned characters
+  // Check that we are correctly connected to Firebase
+  console.log('Listening to Firebase Realtime Database for draft room:', draftRoomId);
+
+  onValue(draftRoomRef, (snapshot) => {
+    const data = snapshot.val();
+    console.log('Received real-time data:', data);
+  
+    if (data) {
+      // Process data if it exists
       setPlayer1Deployed(data.player1Deployed || []);
       setPlayer2Deployed(data.player2Deployed || []);
       setBannedCharacters(data.bannedCharacters || { player1: [], player2: [] });
       setCurrentTurn(data.currentTurn);
       setBanPhase(data.banPhase);
-      setTimer(60); // Reset timer every time a move is made
+      setTimer(60); // Reset timer on update
+    } else {
+      // Log or handle when no data is found
+      console.log('No data found for this draft room.');
+    }
+  });
 
-      // Ensure the correct player is allowed to take a turn
-      const isPlayer1 = data.players.player1 === user.uid;
-      const isPlayer2 = data.players.player2 === user.uid;
+  return () => {
+    console.log('Cleaning up real-time listener');
+  };
+}, [draftRoomId]);
 
-      // Compare the currentTurn with the player's uid
-      const isPlayerTurnNow = (isPlayer1 && data.currentTurn === 1) || (isPlayer2 && data.currentTurn === 2);
-      setIsPlayerTurn(isPlayerTurnNow);
-
-      console.log('Is it player turn:', isPlayerTurnNow, 'Current turn:', data.currentTurn);
-    });
-
-    const timerInterval = setInterval(() => {
-      setTimer((prevTimer) => {
-        if (prevTimer > 0) return prevTimer - 1;
-        return 0;
-      });
-    }, 1000);
-
-    return () => {
-      socket.emit('leaveRoom', { draftRoomId, userId: user.uid });
-      socket.off('updateDraft');
-      clearInterval(timerInterval);
-    };
-  }, [draftRoomId, user]);
-
-  // Handle pick or ban action
+  // Handle ban or pick action
   const handlePickOrBan = (character) => {
     if (!isPlayerTurn) {
-      console.log('Not your turn');
+      console.log('It\'s not your turn yet.');
       return;
     }
-
-    // Emit move to server
-    socket.emit('makeMove', {
-      draftRoomId,
-      userId: user.uid,
-      character,
-      phase: banPhase ? 'ban' : 'pick',
+  
+    console.log('Character selected for pick/ban:', character);
+    console.log('Current phase (banPhase):', banPhase ? 'Ban Phase' : 'Pick Phase');
+    console.log('Current turn (Player 1 or Player 2):', currentTurn);
+  
+    const draftRoomRef = ref(rtdb, `draftRooms/${draftRoomId}`);
+    
+    update(draftRoomRef, {
+      [`bannedCharacters.player${currentTurn}`]: [
+        ...bannedCharacters[`player${currentTurn}`], 
+        character
+      ],
+      currentTurn: currentTurn === 1 ? 2 : 1, // Switch turns
+      banPhase: !banPhase, // Toggle the ban phase
+    }).then(() => {
+      console.log('Pick/Ban action updated in the database');
+    }).catch((error) => {
+      console.error('Error updating the pick/ban:', error);
     });
-    console.log('Move made:', character);
   };
+  
 
-  // Render deployed characters
   const renderDeployed = (deployedTeam) => {
     const deployedSlots = [...deployedTeam];
     while (deployedSlots.length < maxDeployed) {
-      deployedSlots.push({ name: 'Empty Slot', rarity: 'common', imageUrl: '' }); // Add placeholders without image
+      deployedSlots.push({ name: 'Empty Slot', rarity: 'common', imageUrl: '' });
     }
     return deployedSlots.map((character, index) => (
-      <CharacterCard 
-        key={index} 
-        character={character} 
-        isBanned={false} 
-        onClick={null} 
-      />
+      <CharacterCard key={index} character={character} isBanned={false} onClick={null} />
     ));
   };
+
+  if (isLoadingP1 || isLoadingP2) return <p>Loading teams...</p>;
+  if (errorP1 || errorP2) return <p>Error loading teams.</p>;
 
   return (
     <div className="draft">
@@ -134,53 +115,48 @@ const Draft = ({ user }) => {
       </div>
 
       <div className="draft-container">
-        {/* Player 1 Team and Deploy Panel */}
         <div className="team-panel">
-          <h3>{player1.inGameName || 'Player 1'}</h3>
+          <h3>{player1Data?.inGameName || 'Player 1'}</h3>
           <div className="team-grid">
-            {player1Team.map((character, index) => (
+            {player1Data?.team.map((character, index) => (
               <CharacterCard
                 key={index}
                 character={character}
-                isBanned={bannedCharacters.player1.includes(character.name)} // Disable banned characters
+                isBanned={bannedCharacters.player1.includes(character.name) || bannedCharacters.player2.includes(character.name)}
                 onClick={() => handlePickOrBan(character)}
-                disabled={!isPlayerTurn || bannedCharacters.player1.includes(character.name)} // Disable if not player's turn or banned
+                disabled={!isPlayerTurn || bannedCharacters.player1.includes(character.name) || bannedCharacters.player2.includes(character.name)}
               />
             ))}
           </div>
         </div>
 
-        {/* Deployable Team Panel */}
         <div className="deployed-panel">
           <h3>Deployable Team</h3>
           {renderDeployed(player1Deployed)}
         </div>
 
-        {/* Middle Panel */}
         <div className="middle-panel">
           <h3>{banPhase ? 'Ban Phase' : 'Pick Phase'}</h3>
-          <h4>Current Turn: {currentTurn === 1 ? player1.inGameName : player2.inGameName}</h4>
+          <h4>Current Turn: {currentTurn === 1 ? player1Data?.inGameName : player2Data?.inGameName}</h4>
           <p className="turn-indicator">{isPlayerTurn ? 'Your Turn' : "Opponent's Turn"}</p>
           <p className="timer">Time Left: {timer}s</p>
-          <img src="https://firebasestorage.googleapis.com/v0/b/socfightclub.appspot.com/o/maps%2Fimage_2024-09-16_004427236.png?alt=media&token=d82fe782-a30e-412e-86ea-31de678c96ca" alt="Map" className="map" />
         </div>
 
-        {/* Player 2 Deployable and Team Panels */}
         <div className="deployed-panel">
           <h3>Deployable Team</h3>
           {renderDeployed(player2Deployed)}
         </div>
 
         <div className="team-panel">
-          <h3>{player2.inGameName || 'Player 2'}</h3>
+          <h3>{player2Data?.inGameName || 'Player 2'}</h3>
           <div className="team-grid">
-            {player2Team.map((character, index) => (
+            {player2Data?.team.map((character, index) => (
               <CharacterCard
                 key={index}
                 character={character}
-                isBanned={bannedCharacters.player2.includes(character.name)} // Disable banned characters
+                isBanned={bannedCharacters.player1.includes(character.name) || bannedCharacters.player2.includes(character.name)}
                 onClick={() => handlePickOrBan(character)}
-                disabled={!isPlayerTurn || bannedCharacters.player2.includes(character.name)} // Disable if not player's turn or banned
+                disabled={!isPlayerTurn || bannedCharacters.player1.includes(character.name) || bannedCharacters.player2.includes(character.name)}
               />
             ))}
           </div>

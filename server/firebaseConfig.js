@@ -1,13 +1,16 @@
 const admin = require("firebase-admin");
 require("dotenv").config();
 
-admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-});
+// Initialize Firebase Admin SDK for server-side use
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  });
+}
 
-// Get Firestore database instance
+// Get Firestore database instance for admin-level operations
 const db = admin.firestore();
 
 // Function to add character data to Firestore

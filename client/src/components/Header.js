@@ -50,7 +50,19 @@ const Header = ({ user, inGameName, team, handleLogout }) => {
       <div className="user-info">
         {user ? (
           <>
-            <Link to="/account" className="username">{inGameName || 'Account'}</Link> {/* Display in-game name if available */}
+            {/* Display user photo if available, otherwise display the in-game name */}
+            <Link to="/account" className="username">
+              {user.photoURL ? (
+                <img 
+                  src={user.photoURL} 
+                  alt="User Avatar" 
+                  className="user-avatar"
+                  style={{ borderRadius: '50%', width: '45px', height: '45px' }} // Adjust image style as needed
+                />
+              ) : (
+                inGameName || 'Account'
+              )}
+            </Link>
             <button onClick={handleFightNow} className="fight-now-button">Fight Now</button> {/* Fight Now button */}
             <button onClick={handleLogout}>Logout</button>
           </>

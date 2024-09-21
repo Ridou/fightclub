@@ -9,6 +9,10 @@ import Match from './components/Match';
 import AccountPage from './pages/AccountPage'; // Import AccountPage
 import { loginWithGoogle, getUserProfile } from './firebase'; // Import getUserProfile
 import { getAuth } from "firebase/auth";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // Import QueryClient and Provider
+
+// Create a query client instance
+const queryClient = new QueryClient();
 
 function App() {
   const [user, setUser] = useState(null); // Store user account info
@@ -18,18 +22,26 @@ function App() {
   const [loading, setLoading] = useState(true); // Loading state
   const [socket, setSocket] = useState(null); // Store WebSocket connection
 
-  // Fetch the user details (in-game name and team) from Firestore with caching
-  const fetchUserDetails = async (uid) => {
-    try {
-      const userData = await getUserProfile(uid); // Use the cached data function
-      if (userData) {
-        setInGameName(userData.inGameName);
-        setTeam(userData.team || []); // Fetch the team or default to an empty array
-      }
-    } catch (error) {
-      console.error('Error fetching user details:', error);
+// Fetch the user details (in-game name and team) from Firestore with caching
+const fetchUserDetails = async (uid) => {
+  try {
+    console.log(`Fetching user details for UID: ${uid}`);
+    const userData = await getUserProfile(uid); // Use the updated function that checks both Firestore and Realtime Database
+    if (userData) {
+      setInGameName(userData.displayName || "Unknown User");
+      setTeam(userData.team || []); // Fetch the team or default to an empty array
     }
-  };
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+  }
+};
+
+useEffect(() => {
+  if (user) {
+    console.log('User logged in, fetching details:', user.uid);
+    fetchUserDetails(user.uid); // Fetch details whenever the user is updated or logged in
+  }
+}, [user]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -44,19 +56,21 @@ function App() {
     }
   };
 
-  // Handle Google Login
-  const handleLogin = async () => {
-    try {
-      setLoading(true);
-      const { user } = await loginWithGoogle();
-      setUser(user);
-      fetchUserDetails(user.uid); // Fetch user details after login
-    } catch (error) {
-      console.error("Error during login:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+// Handle Google Login
+const handleLogin = async () => {
+  try {
+    setLoading(true);
+    const { user } = await loginWithGoogle();
+    console.log('Logged in as:', user); // Add logging
+    setUser(user);
+    fetchUserDetails(user.uid); // Fetch user details after login
+  } catch (error) {
+    console.error("Error during login:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // WebSocket connection initialization
   useEffect(() => {
@@ -75,22 +89,28 @@ function App() {
 
     // Cleanup the socket connection on unmount
     return () => {
-      newSocket.close();
+      if (newSocket) {
+        newSocket.close();
+      }
     };
   }, []);
 
+  // onAuthStateChanged listener with additional logging
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       if (currentUser) {
+        console.log('Current user after reload:', currentUser); // Add logging
         setUser(currentUser);
         fetchUserDetails(currentUser.uid); // Fetch user details on reload
+      } else {
+        console.log('No user is logged in'); // Add logging
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, []);
+}, []);
 
   // Function to update queue count (could be part of Match component too)
   const handleQueueUpdate = (newCount) => {
@@ -100,40 +120,42 @@ function App() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="App">
-      <Header 
-        user={user} 
-        inGameName={inGameName} 
-        team={team} 
-        handleLogout={handleLogout} 
-        queueCount={queueCount}  // Pass queue count to Header if needed
-      />
+    <QueryClientProvider client={queryClient}> {/* Wrap your app with QueryClientProvider */}
+      <div className="App">
+        <Header 
+          user={user} 
+          inGameName={inGameName} 
+          team={team} 
+          handleLogout={handleLogout} 
+          queueCount={queueCount}  // Pass queue count to Header if needed
+        />
 
-      {!user ? (
-        <>
-          <h1>Fight Club</h1>
-          <button onClick={handleLogin}>Login with Gmail</button>
-          <Routes>
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </>
-      ) : (
-        <>
-          <Routes>
-            <Route path="/account" element={<AccountPage user={user} />} /> {/* Updated to use AccountPage */}
-            <Route path="/characters" element={<CharacterList />} />
-            <Route path="/draft" element={<Draft user={user} socket={socket} />} /> {/* Pass the socket to Draft */}
-            <Route 
-              path="/match" 
-              element={<Match user={user} handleQueueUpdate={handleQueueUpdate} />} // Pass user and queue update
-            /> 
-            <Route path="/ladder" element={<Ladder />} />
-            <Route path="/" element={<Navigate to="/account" />} />
-            <Route path="*" element={<Navigate to="/account" />} />
-          </Routes>
-        </>
-      )}
-    </div>
+        {!user ? (
+          <>
+            <h1>Fight Club</h1>
+            <button onClick={handleLogin}>Login with Gmail</button>
+            <Routes>
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </>
+        ) : (
+          <>
+            <Routes>
+              <Route path="/account" element={<AccountPage user={user} />} /> {/* Updated to use AccountPage */}
+              <Route path="/characters" element={<CharacterList />} />
+              <Route path="/draft" element={<Draft user={user} socket={socket} />} /> {/* Pass the socket to Draft */}
+              <Route 
+                path="/match" 
+                element={<Match user={user} handleQueueUpdate={handleQueueUpdate} />} // Pass user and queue update
+              /> 
+              <Route path="/ladder" element={<Ladder />} />
+              <Route path="/" element={<Navigate to="/account" />} />
+              <Route path="*" element={<Navigate to="/account" />} />
+            </Routes>
+          </>
+        )}
+      </div>
+    </QueryClientProvider>
   );
 }
 

@@ -2,28 +2,29 @@ import React, { useEffect } from 'react';
 import '../styles/CharacterCard.css'; // Assuming styles for the card
 
 const CharacterCard = ({ character, isBanned, onClick }) => {
-  const isEmptySlot = character.name === 'Empty Slot'; // Check if it's an empty slot
+  // Ensure character properties have default values if undefined
+  const characterName = character?.name || 'Unknown';
+  const characterRarity = character?.rarity ? character.rarity.toLowerCase() : 'common';
+  const characterImageUrl = character?.imageUrl || 'default-image.png'; // Default image if none provided
+  const isEmptySlot = characterName === 'Empty Slot'; // Check if it's an empty slot
 
-  useEffect(() => {
-  }, [character, isBanned, isEmptySlot]);
+  useEffect(() => {}, [character, isBanned, isEmptySlot]);
 
   return (
     <div
-      className={`character-card ${isEmptySlot ? 'common' : character.rarity.toLowerCase()} ${isBanned ? 'banned' : ''}`}
+      className={`character-card ${isEmptySlot ? 'common' : characterRarity} ${isBanned ? 'banned' : ''}`}
       onClick={!isBanned && !isEmptySlot ? onClick : null} // Disable clicking if banned or empty
       style={{ cursor: isBanned || isEmptySlot ? 'not-allowed' : 'pointer' }}
     >
       {!isEmptySlot ? (
         <>
-          {character.imageUrl && (
-            <img src={character.imageUrl} alt={character.name} className="character-image" />
+          {characterImageUrl && (
+            <img src={characterImageUrl} alt={characterName} className="character-image" />
           )}
-          <h3>{character.name}</h3>
-          {character.roleImage && character.factionImages && character.factionImages.length > 0 && (
+          <h3>{characterName}</h3>
+          {character?.roleImage && character?.factionImages?.length > 0 && (
             <div className="character-role-faction">
-              {character.roleImage && (
-                <img src={character.roleImage} alt={character.role} className="role-icon" />
-              )}
+              <img src={character.roleImage} alt={character?.role} className="role-icon" />
               {character.factionImages.map((image, index) => (
                 <img key={index} src={image} alt={`Faction ${index}`} className="faction-icon" />
               ))}

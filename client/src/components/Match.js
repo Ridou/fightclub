@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { ref, set } from 'firebase/database'; // Import Realtime Database methods
+import { db, rtdb } from '../firebase'; // Import Firestore and Realtime Database instances
 import { v4 as uuidv4 } from 'uuid'; // For generating unique draft room IDs
 
 const Match = ({ user }) => {
@@ -19,6 +20,34 @@ const Match = ({ user }) => {
     } catch (error) {
       console.error('Error adding player to the queue:', error);
     }
+  };
+
+  // Function to create the draft room in Firebase Realtime Database
+  const createDraftRoom = (roomId, player1, player2) => {
+    const draftRoomRef = ref(rtdb, `draftRooms/${roomId}`);
+
+    set(draftRoomRef, {
+      player1: {
+        uid: player1.uid,
+        inGameName: player1.inGameName
+      },
+      player2: {
+        uid: player2.uid,
+        inGameName: player2.inGameName
+      },
+      player1Deployed: [""],  // Placeholder for player1's deployed characters
+      player2Deployed: [""],  // Placeholder for player2's deployed characters
+      bannedCharacters: {
+        player1: [""],  // Placeholder for player1's banned characters
+        player2: [""]
+      },
+      currentTurn: 1,  // Player 1 starts
+      banPhase: true   // Start with the ban phase
+    }).then(() => {
+      console.log(`Draft room ${roomId} created successfully in Firebase.`);
+    }).catch((error) => {
+      console.error('Error creating draft room in Firebase:', error);
+    });
   };
 
   // Listen to the queue in real-time for updates
@@ -41,8 +70,11 @@ const Match = ({ user }) => {
           setDraftRoomId(roomId);
 
           // Assign player roles based on UID
-          const player1 = user.uid < opponent.uid ? { uid: user.uid, inGameName: user.displayName || 'Player 1' } : { uid: opponent.uid, inGameName: opponent.inGameName || 'Player 1' };
-          const player2 = user.uid > opponent.uid ? { uid: user.uid, inGameName: user.displayName || 'Player 2' } : { uid: opponent.uid, inGameName: opponent.inGameName || 'Player 2' };
+          const player1 = user.uid < opponent.uid ? { uid: user.uid, inGameName: user.inGameName || 'Player 1' } : { uid: opponent.uid, inGameName: opponent.inGameName || 'Player 1' };
+          const player2 = user.uid > opponent.uid ? { uid: user.uid, inGameName: user.inGameName || 'Player 2' } : { uid: opponent.uid, inGameName: opponent.inGameName || 'Player 2' };
+
+          // Create the draft room in Firebase Realtime Database
+          createDraftRoom(roomId, player1, player2);
 
           // Remove both players from the queue once matched
           deleteDoc(doc(db, `queue/${user.uid}`));
