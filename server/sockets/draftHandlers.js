@@ -18,7 +18,7 @@ const updateFirebaseDraftRoom = async (draftRoomId, roomData) => {
   const draftRoomRef = db.ref(`draftRooms/${draftRoomId}`);
   try {
     await draftRoomRef.set(roomData);
-    console.log(`Draft room ${draftRoomId} updated in Firebase Realtime Database.`);
+    console.log(`Draft room ${draftRoomId} updated in Firebase Realtime Database.`, roomData); // Log full room data
   } catch (error) {
     console.error('Error updating draft room in Firebase:', error);
   }
@@ -40,12 +40,11 @@ const getNextTurn = (currentTurnIndex, phase) => {
 
 // Helper function to broadcast the full game state
 const broadcastRoomState = (io, draftRoomId, room) => {
-  console.log("Broadcasting room state:", JSON.stringify(room, null, 2));
+  console.log("Broadcasting room state:", JSON.stringify(room, null, 2)); // Log broadcasted state
   io.to(draftRoomId).emit('updateDraft', room);
 };
 
 // Handle when a player makes a move (ban/pick)
-// After handling a move, emit the update to both clients
 const handleMove = (io, socket, data) => {
   const { draftRoomId, userId, character, phase } = data;
   const room = draftRooms[draftRoomId];
@@ -60,11 +59,13 @@ const handleMove = (io, socket, data) => {
   // Handle banning and picking
   if (phase === 'ban') {
     if (isPlayer1) {
+      // Only ban if the character is not already banned by player1
       if (!room.bannedCharacters.player1.includes(character)) {
         room.bannedCharacters.player1.push(character);
         console.log("Player 1 banned:", character);
       }
     } else {
+      // Only ban if the character is not already banned by player2
       if (!room.bannedCharacters.player2.includes(character)) {
         room.bannedCharacters.player2.push(character);
         console.log("Player 2 banned:", character);
@@ -80,7 +81,6 @@ const handleMove = (io, socket, data) => {
     }
   }
 
-  // Move to the next turn
   room.currentTurnIndex += 1;
   const nextTurn = getNextTurn(room.currentTurnIndex, room.banPhase ? 'ban' : 'pick');
 
@@ -104,10 +104,12 @@ const handleMove = (io, socket, data) => {
     return;
   }
 
+  room.timer = 60; // Reset timer for the next move
   room.lastActivity = Date.now();
   broadcastRoomState(io, draftRoomId, room);  // Broadcast updated turn and state
   updateFirebaseDraftRoom(draftRoomId, room); // Sync the room state to Firebase
 };
+
 
 // Handle player draft events
 const handleDraftEvents = (io, socket) => {

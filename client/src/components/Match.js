@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
-import { ref, set } from 'firebase/database'; // Import Realtime Database methods
-import { db, rtdb } from '../firebase'; // Import Firestore and Realtime Database instances
-import { v4 as uuidv4 } from 'uuid'; // For generating unique draft room IDs
+import { collection, doc, setDoc, deleteDoc, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { ref, set } from 'firebase/database';
+import { db, rtdb } from '../firebase';
+import { v4 as uuidv4 } from 'uuid';
 
 const Match = ({ user }) => {
   const navigate = useNavigate();
   const [matchedPlayer, setMatchedPlayer] = useState(null);
-  const [draftRoomId, setDraftRoomId] = useState(null); // Track draft room ID
+  const [draftRoomId, setDraftRoomId] = useState(null);
 
   // Function to add the user to the queue in Firestore
   const joinQueue = async () => {
@@ -22,32 +22,119 @@ const Match = ({ user }) => {
     }
   };
 
-  // Function to create the draft room in Firebase Realtime Database
-  const createDraftRoom = (roomId, player1, player2) => {
-    const draftRoomRef = ref(rtdb, `draftRooms/${roomId}`);
+ // Function to create the draft room in Firebase Realtime Database
+ const createDraftRoom = async (roomId, playerA, playerB) => {
+  // Randomly assign Player 1 and Player 2
+  const isPlayer1 = Math.random() < 0.5;
+  const player1 = isPlayer1 ? playerA : playerB;
+  const player2 = isPlayer1 ? playerB : playerA;
 
-    set(draftRoomRef, {
-      player1: {
-        uid: player1.uid,
-        inGameName: player1.inGameName
-      },
-      player2: {
-        uid: player2.uid,
-        inGameName: player2.inGameName
-      },
-      player1Deployed: [""],  // Placeholder for player1's deployed characters
-      player2Deployed: [""],  // Placeholder for player2's deployed characters
-      bannedCharacters: {
-        player1: [""],  // Placeholder for player1's banned characters
-        player2: [""]
-      },
-      currentTurn: 1,  // Player 1 starts
-      banPhase: true   // Start with the ban phase
-    }).then(() => {
-      console.log(`Draft room ${roomId} created successfully in Firebase.`);
-    }).catch((error) => {
-      console.error('Error creating draft room in Firebase:', error);
-    });
+  console.log('Player 1:', player1);
+  console.log('Player 2:', player2);
+
+  const draftRoomRef = ref(rtdb, `draftRooms/${roomId}`);
+  
+  // Save player data and initial room settings
+  const dataToSave = {
+    player1: {
+      name: player1.inGameName || 'Player 1',
+      uid: player1.uid
+    },
+    player2: {
+      name: player2.inGameName || 'Player 2',
+      uid: player2.uid
+    },
+    player1Deployed: [""], // Initialize with empty array
+    player2Deployed: [""],
+    bannedCharacters: {
+      player1: [""],
+      player2: [""]
+    },
+    currentTurn: 1, // Start with Player 1's turn
+    banPhase: true, // Begin with Ban Phase
+    timer: 60
+  };
+
+  try {
+    await set(draftRoomRef, dataToSave); // Store the draft room data in Firebase
+    console.log(`Draft room ${roomId} created successfully in Firebase.`);
+  } catch (error) {
+    console.error('Error creating draft room in Firebase:', error);
+  }
+};
+
+
+
+  // Function to handle matchmaking and creating/joining a draft room
+  const handleMatchmaking = async () => {
+    const queueSnapshot = await getDocs(collection(db, 'queue'));
+    const queueData = queueSnapshot.docs.map((doc) => doc.data());
+
+    if (queueData.length >= 2) {
+      const opponent = queueData.find((player) => player.uid !== user.uid);
+      if (opponent && !matchedPlayer) {
+        console.log(`Match found: ${opponent.inGameName || 'Player'} (${opponent.uid})`);
+        setMatchedPlayer(opponent);
+
+        let roomId;
+        let isRoomCreator = false;
+
+        // Check if a draft room has already been created for this match
+        const existingRoomRef = collection(db, 'draftRooms');
+        const existingRoomQuery = query(
+          existingRoomRef,
+          where('player1Uid', 'in', [user.uid, opponent.uid]),
+          where('player2Uid', 'in', [user.uid, opponent.uid])
+        );
+        const existingRoomSnapshot = await getDocs(existingRoomQuery);
+
+        if (existingRoomSnapshot.empty) {
+          // If no room exists, create a new one and assign the current user as the room creator
+          roomId = uuidv4();
+          isRoomCreator = true;
+        } else {
+          // If a room exists, use the existing room ID
+          roomId = existingRoomSnapshot.docs[0].id;
+        }
+
+        if (isRoomCreator) {
+          // Assign player roles based on UID
+          const player1 = user.uid < opponent.uid ? user : opponent;
+          const player2 = user.uid > opponent.uid ? user : opponent;
+
+          // Create the draft room
+          await setDoc(doc(db, `draftRooms/${roomId}`), {
+            userUid: user.uid,
+            opponentUid: opponent.uid,
+          });
+
+          // Create draft room in Realtime Database
+          await createDraftRoom(roomId, user, opponent);
+        }
+
+        // Remove both players from the queue after a match is found
+        await deleteDoc(doc(db, `queue/${user.uid}`));
+        await deleteDoc(doc(db, `queue/${opponent.uid}`));
+        console.log(`Both players (${user.uid} and ${opponent.uid}) removed from the queue.`);
+
+        // Navigate to the draft with player1 and player2
+        navigate('/draft', {
+          state: {
+            player1: {
+              uid: user.uid,
+              inGameName: user.inGameName || 'Player',
+            },
+            player2: {
+              uid: opponent.uid,
+              inGameName: opponent.inGameName || 'Player',
+            },
+            draftRoomId: roomId, // Pass the shared draft room ID to Draft
+          },
+        });
+      }
+    } else {
+      console.log('Not enough players in the queue.');
+    }
   };
 
   // Listen to the queue in real-time for updates
@@ -55,50 +142,14 @@ const Match = ({ user }) => {
     joinQueue();
 
     const queueRef = collection(db, 'queue');
-    const unsubscribe = onSnapshot(queueRef, (snapshot) => {
-      const queueData = snapshot.docs.map((doc) => doc.data());
-      console.log('Real-time queue data:', queueData);
-
-      if (queueData.length > 1) {
-        const opponent = queueData.find((player) => player.uid !== user.uid);
-        if (opponent) {
-          console.log(`Match found: ${opponent.inGameName || 'Player'} (${opponent.uid})`);
-          setMatchedPlayer(opponent);
-
-          // Create a unique draft room ID for each match
-          const roomId = uuidv4();
-          setDraftRoomId(roomId);
-
-          // Assign player roles based on UID
-          const player1 = user.uid < opponent.uid ? { uid: user.uid, inGameName: user.inGameName || 'Player 1' } : { uid: opponent.uid, inGameName: opponent.inGameName || 'Player 1' };
-          const player2 = user.uid > opponent.uid ? { uid: user.uid, inGameName: user.inGameName || 'Player 2' } : { uid: opponent.uid, inGameName: opponent.inGameName || 'Player 2' };
-
-          // Create the draft room in Firebase Realtime Database
-          createDraftRoom(roomId, player1, player2);
-
-          // Remove both players from the queue once matched
-          deleteDoc(doc(db, `queue/${user.uid}`));
-          deleteDoc(doc(db, `queue/${opponent.uid}`));
-          console.log(`Both players (${user.uid} and ${opponent.uid}) removed from the queue.`);
-
-          // Navigate to the draft with player1 and player2 assigned
-          navigate('/draft', {
-            state: {
-              player1,
-              player2,
-              draftRoomId: roomId, // Pass the unique room ID to Draft
-            },
-          });
-        }
-      } else {
-        console.log('Not enough players in the queue.');
-      }
+    const unsubscribe = onSnapshot(queueRef, () => {
+      handleMatchmaking(); // Call matchmaking logic whenever the queue updates
     });
 
     return () => {
       unsubscribe(); // Unsubscribe from real-time updates when component unmounts
     };
-  }, [user]);
+  }, [user, matchedPlayer, draftRoomId]);
 
   return (
     <div>
