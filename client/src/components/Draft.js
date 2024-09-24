@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ref, onValue, update } from 'firebase/database';
+import { ref, onValue, update } from 'firebase/database'; // Ensure these are imported
 import { getUserProfile, rtdb } from '../firebase';
+import useDraftRoom from '../hooks/useDraftRoom';
 
 import CharacterCard from './CharacterCard';
 import '../styles/Draft.css';
@@ -17,17 +18,20 @@ const Draft = ({ user }) => {
   const [player1Deployed, setPlayer1Deployed] = useState([""]);
   const [player2Deployed, setPlayer2Deployed] = useState([""]);
   const [bannedCharacters, setBannedCharacters] = useState({ player1: [""], player2: [""] });
-  const [currentTurn, setCurrentTurn] = useState(1);  // Player 1 starts the game
+  const [currentTurn, setCurrentTurn] = useState(1);  // Start with Player 1
   const [banPhase, setBanPhase] = useState(true);
   const [timer, setTimer] = useState(60);
   const [isPlayerTurn, setIsPlayerTurn] = useState(false);
   const [pickOrder, setPickOrder] = useState([1, 2, 2, 1, 1, 2, 2, 1, 1, 2]);
   const [deployed, setDeployed] = useState({ player1: [""], player2: [""] });
+  const { createOrUpdateDraftRoom } = useDraftRoom();
 
   const maxDeployed = 5;
 
   useEffect(() => {
     if (!player1 || !player2) return;
+    
+    // Ensure that only the current player can take their turn
     const isTurn = user.uid === (currentTurn === 1 ? player1.uid : player2.uid);
     setIsPlayerTurn(isTurn);
     console.log(`User ${user.uid} - Is it my turn? ${isTurn}`);
@@ -62,21 +66,21 @@ const Draft = ({ user }) => {
 
   useEffect(() => {
     const draftRoomRef = ref(rtdb, `draftRooms/${draftRoomId}`);
-  
+
     const offValueHandler = onValue(draftRoomRef, (snapshot) => {
       const data = snapshot.val();
       console.log("Realtime data received: ", data);
-  
+
       if (data && data.player1 && data.player2) {
         setBanPhase(data.banPhase);
         setCurrentTurn(data.turn);  // Sync current turn from Firebase
         setTimer(data.timer);
-  
-        setPlayer1Deployed(data.deployed?.player1 || []);
-        setPlayer2Deployed(data.deployed?.player2 || []);
-        setBannedCharacters(data.bannedCharacters || { player1: [], player2: [] });
-  
-        // Check whose turn it is based on Firebase 'turn' value
+
+        setPlayer1Deployed(data.deployed?.player1 || [""]);
+        setPlayer2Deployed(data.deployed?.player2 || [""]);
+        setBannedCharacters(data.bannedCharacters || { player1: [""], player2: [""] });
+
+        // Ensure turn reflects correct player based on 'turn' value
         const isTurn = user.uid === (data.turn === 1 ? data.player1.uid : data.player2.uid);
         setIsPlayerTurn(isTurn);  // Update the client's turn
         console.log(`Updated state: banPhase=${data.banPhase}, turn=${data.turn}, Is it my turn? ${isTurn}`);
@@ -86,7 +90,7 @@ const Draft = ({ user }) => {
     }, (error) => {
       console.error("Error reading from Realtime Database:", error);
     });
-  
+
     return () => offValueHandler();
   }, [draftRoomId, user.uid, currentTurn]); // Add currentTurn to the dependency array
 
@@ -95,7 +99,7 @@ const Draft = ({ user }) => {
       console.log("It's not your turn yet. Skipping timer action.");
       return;
     }
-    
+
     if (banPhase) {
       if (!player1Data || !player2Data) return;
       const availableCharacters = currentTurn === 1 ? player1Data?.team : player2Data?.team;
@@ -110,29 +114,29 @@ const Draft = ({ user }) => {
     }
   };
 
-  // Update the turn and handle bans or picks properly
+  // Ensure Player 1 goes first at the start of the ban phase
   const handlePickOrBan = async (character) => {
     try {
       if (!isPlayerTurn) {
         console.log("It's not your turn yet.");
         return;
       }
-  
+
       const draftRoomRef = ref(rtdb, `draftRooms/${draftRoomId}`);
-  
+
       if (banPhase) {
         const enemyTeam = currentTurn === 1 ? player2Data?.team : player1Data?.team;
         if (!enemyTeam.includes(character)) {
           console.log("You can only ban from the enemy team.");
           return;
         }
-  
+
         const updatedBannedCharacters = {
           ...bannedCharacters,
-          [`player${currentTurn}`]: [character.name],
+          [`player${currentTurn}`]: [...bannedCharacters[`player${currentTurn}`], character.name],
         };
-  
-        const nextTurn = currentTurn === 1 ? 2 : 1;  // Alternate turns
+
+        const nextTurn = currentTurn === 1 ? 2 : 1;  // Alternate turns, starting with Player 1
         await update(draftRoomRef, {
           turn: nextTurn,
           bannedCharacters: updatedBannedCharacters,
@@ -142,39 +146,38 @@ const Draft = ({ user }) => {
           timer: 60,
           deployed,
         });
-  
+
         setBannedCharacters(updatedBannedCharacters);
         setCurrentTurn(nextTurn);
-  
-        // Check if both players have banned at least one character each
-      if (updatedBannedCharacters.player1.length >= 1 && updatedBannedCharacters.player2.length >= 1) {
-        console.log("Both players have banned. Transitioning to pick phase.");
-        await update(draftRoomRef, {
-          banPhase: false,  // End the ban phase
-          turn: 1,  // Set the turn back to Player 1 to start the pick phase
-          timer: 60,  // Reset the timer
-        });
-        setBanPhase(false);  // Update the local state to reflect the pick phase
-        setCurrentTurn(1);  // Reset turn to Player 1
-      }
-    } else {
-      // Handle picks here if not in ban phase
-      const ownTeam = currentTurn === 1 ? player1Data?.team : player2Data?.team;
-      if (!ownTeam.includes(character)) {
-        console.log("You can only pick from your own team.");
-        return;
-      }
 
-  
+        // Check if both players have banned 1 character each
+        if (updatedBannedCharacters.player1.length > 1 && updatedBannedCharacters.player2.length > 1) {
+          console.log("Both players have banned. Transitioning to pick phase.");
+          await update(draftRoomRef, {
+            banPhase: false,  // End the ban phase
+            turn: 1,  // Set the turn back to Player 1 to start the pick phase
+            timer: 60,  // Reset the timer
+          });
+          setBanPhase(false);  // Update the local state to reflect the pick phase
+          setCurrentTurn(1);  // Reset turn to Player 1
+        }
+      } else {
+        // Handle picks here if not in ban phase
+        const ownTeam = currentTurn === 1 ? player1Data?.team : player2Data?.team;
+        if (!ownTeam.includes(character)) {
+          console.log("You can only pick from your own team.");
+          return;
+        }
+
         const updatedDeployed = {
           ...deployed,
           [`player${currentTurn}`]: [...deployed[`player${currentTurn}`], character],
         };
-  
+
         const nextTurn = pickOrder.shift();  // Move to the next pick
         setDeployed(updatedDeployed);
         setCurrentTurn(nextTurn);
-  
+
         await update(draftRoomRef, {
           turn: nextTurn,
           deployed: updatedDeployed,
@@ -183,7 +186,7 @@ const Draft = ({ user }) => {
           banPhase,
           timer: 60,
         });
-  
+
         console.log(`Successfully updated banPhase=${banPhase}, currentTurn=${currentTurn}`);
       }
     } catch (error) {
@@ -191,7 +194,6 @@ const Draft = ({ user }) => {
     }
   };
 
-  
   const renderDeployed = (deployedTeam) => {
     const deployedSlots = [...deployedTeam];
     while (deployedSlots.length < maxDeployed) {
@@ -210,7 +212,7 @@ const Draft = ({ user }) => {
       <div className="draft-header">
         <h2>Draft Room</h2>
       </div>
-  
+
       <div className="draft-container">
         <div className="team-panel">
           <h3>{player1Data?.inGameName || 'Player 1'}</h3>
@@ -224,25 +226,6 @@ const Draft = ({ user }) => {
                   bannedCharacters?.player2?.includes(character.name)
                 }
                 onClick={() => {
-                  if (banPhase) {
-                    if (currentTurn === 1 && player1Data?.team.includes(character)) {
-                      console.log("You can't ban from your own team.");
-                      return;
-                    }
-                    if (currentTurn === 2 && player2Data?.team.includes(character)) {
-                      console.log("You can't ban from your own team.");
-                      return;
-                    }
-                  } else {
-                    if (currentTurn === 1 && !player1Data?.team.includes(character)) {
-                      console.log("You can only pick from your own team.");
-                      return;
-                    }
-                    if (currentTurn === 2 && !player2Data?.team.includes(character)) {
-                      console.log("You can only pick from your own team.");
-                      return;
-                    }
-                  }
                   handlePickOrBan(character);
                 }}
                 disabled={
@@ -254,24 +237,24 @@ const Draft = ({ user }) => {
             ))}
           </div>
         </div>
-  
+
         <div className="deployed-panel">
           <h3>Deployable Team</h3>
           {renderDeployed(player1Deployed)}
         </div>
-  
+
         <div className="middle-panel">
           <h3>{banPhase ? 'Ban Phase' : 'Pick Phase'}</h3>
           <h4>Current Turn: {currentTurn === 1 ? player1Data?.inGameName : player2Data?.inGameName}</h4>
           <p className="turn-indicator">{isPlayerTurn ? 'Your Turn' : "Opponent's Turn"}</p>
           <p className="timer">Time Left: {timer}s</p>
         </div>
-  
+
         <div className="deployed-panel">
           <h3>Deployable Team</h3>
           {renderDeployed(player2Deployed)}
         </div>
-  
+
         <div className="team-panel">
           <h3>{player2Data?.inGameName || 'Player 2'}</h3>
           <div className="team-grid">
@@ -284,25 +267,6 @@ const Draft = ({ user }) => {
                   bannedCharacters?.player2?.includes(character.name)
                 }
                 onClick={() => {
-                  if (banPhase) {
-                    if (currentTurn === 1 && player1Data?.team.includes(character)) {
-                      console.log("You can't ban from your own team.");
-                      return;
-                    }
-                    if (currentTurn === 2 && player2Data?.team.includes(character)) {
-                      console.log("You can't ban from your own team.");
-                      return;
-                    }
-                  } else {
-                    if (currentTurn === 1 && !player1Data?.team.includes(character)) {
-                      console.log("You can only pick from your own team.");
-                      return;
-                    }
-                    if (currentTurn === 2 && !player2Data?.team.includes(character)) {
-                      console.log("You can only pick from your own team.");
-                      return;
-                    }
-                  }
                   handlePickOrBan(character);
                 }}
                 disabled={
