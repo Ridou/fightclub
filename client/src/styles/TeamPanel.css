@@ -1,0 +1,24 @@
+.team-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px;
+    background-color: #333333;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.7);
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.character-card.banned {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}

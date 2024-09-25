@@ -1,45 +1,50 @@
-import { ref, set, update } from 'firebase/database';
-import { rtdb } from '../firebase';  // Ensure your firebase config is properly imported
+import { ref, set, update, get } from 'firebase/database';
+import { rtdb } from '../firebase';
 
-// Custom hook for creating/updating draft rooms
 const useDraftRoom = () => {
-  const createOrUpdateDraftRoom = async (roomId, player1, player2, placeholderData) => {
-    const draftRoomRef = ref(rtdb, `draftRooms/${roomId}`);
-
-    // Logs for debugging
-    console.log(`Attempting to create or update draft room with ID: ${roomId}`);
-
+  // Function to create or update a draft room in Firebase
+  const createOrUpdateDraftRoom = async (draftRoomId, player1, player2) => {
     try {
-      // First, try setting the data to ensure the room exists
-      await set(draftRoomRef, {
-        player1: {
-          name: player1.inGameName || 'Player 1',
-          uid: player1.uid,
-        },
-        player2: {
-          name: player2.inGameName || 'Player 2',
-          uid: player2.uid,
-        },
-        player1Deployed: placeholderData.player1Deployed || ["Placeholder1"],
-        player2Deployed: placeholderData.player2Deployed || ["Placeholder2"],
-        bannedCharacters: {
-          player1: placeholderData.bannedCharacters.player1 || ["Placeholder1"],
-          player2: placeholderData.bannedCharacters.player2 || ["Placeholder2"],
-        },
-        turn: 1, // Start with Player 1's turn
-        banPhase: true, // Begin with Ban Phase
-        timer: 60,
-      });
+      const draftRoomRef = ref(rtdb, `draftRooms/${draftRoomId}`);
 
-      console.log(`Draft room ${roomId} created successfully with initial data.`);
+      // First, retrieve the existing draft room data (if any)
+      const draftRoomSnapshot = await get(draftRoomRef);
+      const existingDraftRoom = draftRoomSnapshot.val();
 
-      // After the room is created, we can use update for further adjustments
-      await update(draftRoomRef, {
-        turn: 1, // You can add more updates here as needed
-        timer: 60,  // You can adjust the timer if required
-      });
+      // If the draft room already exists, we only update necessary fields
+      if (existingDraftRoom) {
+        const updatedDraftData = {
+          player1: player1 || existingDraftRoom.player1,
+          player2: player2 || existingDraftRoom.player2,
+          player1Deployed: existingDraftRoom.player1Deployed || [],
+          player2Deployed: existingDraftRoom.player2Deployed || [],
+          bannedCharacters: existingDraftRoom.bannedCharacters || { player1: [], player2: [] },
+          turn: existingDraftRoom.turn || 1,  // Keep the current turn if it exists
+          banPhase: existingDraftRoom.banPhase !== undefined ? existingDraftRoom.banPhase : true,
+          player1Ready: existingDraftRoom.player1Ready || false,
+          player2Ready: existingDraftRoom.player2Ready || false,
+        };
 
-      console.log(`Draft room ${roomId} updated successfully.`);
+        // Update only the fields that need to be changed
+        await update(draftRoomRef, updatedDraftData);
+        console.log('Draft room updated successfully.');
+      } else {
+        // If the draft room does not exist, create it with initial data
+        const initialDraftData = {
+          player1: player1 || {},
+          player2: player2 || {},
+          player1Deployed: [],
+          player2Deployed: [],
+          bannedCharacters: { player1: [], player2: [] },
+          turn: 1,  // Player 1 starts
+          banPhase: true,  // Start with the ban phase
+          player1Ready: false,
+          player2Ready: false,
+        };
+
+        await set(draftRoomRef, initialDraftData);
+        console.log('Draft room created successfully.');
+      }
     } catch (error) {
       console.error('Error creating or updating the draft room in Firebase:', error);
     }
