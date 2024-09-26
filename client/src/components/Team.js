@@ -1,44 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import SwipeCarousel from './SwipeCarousel'; // New Swiper component
 import CharacterCard from './CharacterCard'; // Import the CharacterCard component
-import { fetchCharacters } from './CharacterList'; // Import the function
-import { saveUserTeam, getUserProfile } from '../firebase';
+import { fetchCharacters, getUserTeam, saveUserTeam } from '../firebase'; // Ensure correct imports
 import '../styles/Team.css';
 
 function Team({ user }) {
-  const [team, setTeam] = useState([]);
+  const [team, setTeam] = useState([]); // Initialize as an empty array
   const [availableCharacters, setAvailableCharacters] = useState([]); // State for available characters
   const [editingTeam, setEditingTeam] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
-
   const maxTeamSize = 12;
 
+  // Fetch user team data from Firestore when the component loads
   useEffect(() => {
-    const fetchUserTeam = async () => {
+    const fetchUserTeamData = async () => {
       try {
-        const profile = await getUserProfile(user.uid);
-        const teamWithImages = profile?.team.map((character) => ({
-          ...character,
-          roleImage: character.roleImage,
-          factionImages: character.factionImages,
-        }));
-        setTeam(teamWithImages || []);
+        const fetchedTeam = await getUserTeam(user.uid);
+        if (fetchedTeam && fetchedTeam.length > 0) {
+          setTeam(fetchedTeam); // Set the team if fetched
+        } else {
+          setTeam([]); // Reset to empty array if no team exists
+        }
       } catch (error) {
         console.error('Error fetching team:', error);
+        setErrorMessage('Error fetching team data.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserTeam();
+    fetchUserTeamData();
   }, [user.uid]);
 
   // Fetch available characters
   useEffect(() => {
     const fetchAvailableCharacters = async () => {
-      const characters = await fetchCharacters();
-      setAvailableCharacters(characters);
+      try {
+        const characters = await fetchCharacters();
+        setAvailableCharacters(characters);
+      } catch (error) {
+        console.error('Error fetching available characters:', error);
+        setErrorMessage('Error fetching available characters.');
+      }
     };
 
     fetchAvailableCharacters();
@@ -62,6 +65,7 @@ function Team({ user }) {
     setAvailableCharacters([...availableCharacters, removedCharacter]); // Return to pool
   };
 
+  // Toggle editing and save team to Firestore
   const toggleEditingTeam = async () => {
     if (editingTeam) {
       setLoading(true);
@@ -78,8 +82,6 @@ function Team({ user }) {
     setEditingTeam(!editingTeam);
   };
 
-  const calculateSlidesPerView = (itemsCount) => Math.min(itemsCount, 3);
-
   return (
     <div className="right-section">
       <h2>Your Team</h2>
@@ -92,40 +94,36 @@ function Team({ user }) {
           </button>
           {errorMessage && <p className="error-message">{errorMessage}</p>}
 
-          <div className="team-list">
-            {/* Display the selected team */}
-            <SwipeCarousel
-              items={team}
-              renderItem={(character) => (
+          <div className="team-grid">
+            {team.length > 0 ? (
+              team.map((character, index) => (
                 <CharacterCard
+                  key={index}
                   character={character}
                   onClick={() => editingTeam && removeCharacterFromTeam(character.name)}
                 />
-              )}
-              slidesPerView={calculateSlidesPerView(team.length)}
-              spaceBetween={10}
-              freeMode={true}
-              loop={false}
-            />
-            {team.length < maxTeamSize && <div className="placeholder">Empty Slot</div>}
+              ))
+            ) : (
+              <p>No characters in your team yet.</p>
+            )}
+            {team.length < maxTeamSize &&
+              Array.from({ length: maxTeamSize - team.length }).map((_, i) => (
+                <div key={i} className="placeholder">Empty Slot</div>
+              ))}
           </div>
 
           {editingTeam && (
-            <div className="character-carousel">
+            <div className="character-selection">
               <h3>Select Characters:</h3>
-              <SwipeCarousel
-                items={availableCharacters}
-                renderItem={(character) => (
+              <div className="character-grid">
+                {availableCharacters.map((character, index) => (
                   <CharacterCard
+                    key={index}
                     character={character}
                     onClick={() => handleCharacterSelection(character)}
                   />
-                )}
-                slidesPerView={calculateSlidesPerView(availableCharacters.length)}
-                spaceBetween={10}
-                freeMode={true}
-                loop={false}
-              />
+                ))}
+              </div>
             </div>
           )}
         </>

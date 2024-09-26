@@ -17,11 +17,9 @@ const Match = ({ user }) => {
       if (userDocSnapshot.exists() && userDocSnapshot.data().inGameName) {
         return userDocSnapshot.data().inGameName;
       } else {
-        console.log('InGameName not found, using default "Player".');
         return 'Player';
       }
     } catch (error) {
-      console.error('Error fetching inGameName:', error);
       return 'Player';
     }
   };
@@ -58,7 +56,6 @@ const Match = ({ user }) => {
       }
       return null;
     } catch (error) {
-      console.error('Error finding existing draft room:', error);
       return null;
     }
   };
@@ -73,7 +70,6 @@ const Match = ({ user }) => {
       const existingRoom = await findExistingDraftRoom(user.uid, opponent.uid);
 
       if (existingRoom) {
-        console.log(`Found existing draft room with ID: ${existingRoom.roomId}`);
         return existingRoom.roomId;
       } else {
         // Use a transaction to ensure only one room is created
@@ -110,20 +106,15 @@ const Match = ({ user }) => {
           };
           return draftRooms;
         });
-
-        console.log(`Room ID after transaction: ${roomId}`);
         return roomId;
       }
     } catch (error) {
-      console.error('Error creating or joining draft room:', error);
       return null;
     }
   };
 
   // Handle matchmaking process
   const handleMatchmaking = async () => {
-    console.log('Starting matchmaking...');
-
     try {
       const q = query(
         collection(db, 'queue'),
@@ -135,8 +126,6 @@ const Match = ({ user }) => {
         if (snapshot.size > 0) {
           const opponentDoc = snapshot.docs[0];
           const opponent = opponentDoc.data();
-
-          console.log('Opponent found:', opponent);
 
           const roomId = await createOrJoinDraftRoom(opponent);
 
@@ -152,8 +141,6 @@ const Match = ({ user }) => {
               const player1 = roomVal.player1;
               const player2 = roomVal.player2;
 
-              console.log('Navigating to /draft with state:', { player1, player2, draftRoomId: roomId });
-
               await deleteDoc(doc(db, `queue/${user.uid}`));
               await deleteDoc(doc(db, `queue/${opponent.uid}`));
 
@@ -164,19 +151,13 @@ const Match = ({ user }) => {
                   draftRoomId: roomId,
                 },
               });
-            } else {
-              console.error('Room data is null or not available');
             }
           }
-        } else {
-          console.log('No opponent found in the queue.');
         }
       });
 
       return () => unsubscribe();
-    } catch (error) {
-      console.error('Error during matchmaking:', error);
-    }
+    } catch (error) {}
   };
 
   // Add player to the queue
@@ -188,12 +169,9 @@ const Match = ({ user }) => {
           uid: user.uid,
           inGameName: user.inGameName || 'Player',
         });
-        console.log('Player added to the queue:', user.uid);
 
         handleMatchmaking();
-      } catch (error) {
-        console.error('Error adding player to the queue:', error);
-      }
+      } catch (error) {}
     };
 
     if (user) {

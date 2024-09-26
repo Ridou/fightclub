@@ -7,89 +7,40 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    max-width: 100%; /* Allow it to expand fully */
+    max-width: 100%;
     margin: 0 auto;
-    width: calc(100% - 20px); /* Add space on both sides */
-    align-items: flex-start; /* Align everything to the left */
+    width: calc(100% - 20px);
+    align-items: flex-start;
 }
 
-/* Team carousel for scrolling selected characters */
-.team-list {
-    max-height: 250px;
-    overflow-y: hidden;
-    padding: 10px;
-    background-color: #333333;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: flex-start; /* Align content to the left */
-    overflow-x: auto; /* Enable horizontal scrolling */
-    width: 100%; /* Ensure it takes the full width */
-    max-width: 900px; /* Set a more restricted width */
-}
-
-/* Flex container for character cards in the team carousel */
-.team-carousel {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 10px;
-    justify-content: flex-start; /* Align characters in a single row */
-    overflow-x: auto;
-    width: 100%; /* Adjust the width */
-}
-
-/* Character card in the team carousel */
-.team-carousel .character-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 7px;
-    border-radius: 10px;
-    cursor: pointer;
-    width: 107px;
-    height: 190px;
-    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-    background-color: inherit;
-}
-
-/* Hover effect for character card */
-.team-carousel .character-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-}
-
-/* Placeholder for empty slots */
-.placeholder {
-    width: 107px;
-    height: 190px;
-    border: 2px dashed #ccc;
+/* Grid layout for the team */
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 10px;
+    margin-top: 20px;
+  }
+  
+  /* Grid layout for character selection */
+  .character-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 10px;
+    margin-top: 20px;
+  }
+  
+  /* Placeholder for empty slots */
+  .placeholder {
+    width: 100%;
+    height: 150px;
+    background-color: #444;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: 2px dashed #ccc;
     color: #ccc;
     font-size: 14px;
-}
-
-/* Swiper container customization */
-.swiper-container {
-    width: 100%;
-    height: auto;
-}
-
-/* Swiper slide */
-.swiper-slide {
-    display: flex;
-    justify-content: center;
-    width: 95px !important;
-    max-width: 107px;
-    height: auto;
-    margin-right: 10px;
-}
-
-/* Disable the pagination bullets */
-.swiper-pagination {
-    display: none !important;
-}
+  }
 
 /* Character image */
 .character-card img {
@@ -108,10 +59,10 @@
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    align-self: flex-start; /* Align the button to the left */
+    align-self: flex-start;
     margin-top: 10px;
-}
-
-.edit-team-button:hover {
+  }
+  
+  .edit-team-button:hover {
     background-color: #772ce8;
-}
+  }

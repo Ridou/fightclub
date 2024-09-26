@@ -4,11 +4,11 @@ import { db } from '../firebase'; // Import the initialized Firestore instance f
 import CharacterCard from './CharacterCard'; // Import the CharacterCard component
 import '../styles/CharacterList.css'; // Assuming styles will go here
 
-// List of unreleased characters
+// List of unreleased characters (converted to lowercase for consistency)
 const unreleasedCharacters = [
-  'Acambe', 'Agatha', 'Auguste', 'Caris', 'Cocoa', 'Col', 'Hasna', 'Homa', 
+  'Acambe', 'Agatha', 'Auguste', 'Caris', 'Cocoa', 'Col', 'Hasna', 'Homa',
   'Layla', 'Pamina', 'Safiyyah', 'Schacklulu', 'Taair', 'Tristan'
-];
+].map(name => name.toLowerCase().trim()); // Ensure all names are lowercase and trimmed
 
 // Role images map
 const roleImageMap = {
@@ -43,11 +43,22 @@ const getFactionImages = (factionString) => {
 export const fetchCharacters = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, 'characters'));
-    const characters = querySnapshot.docs
-      .map((doc) => doc.data())
-      .filter(character => !unreleasedCharacters.includes(character.name));
+    const characters = querySnapshot.docs.map((doc) => doc.data());
 
-    return characters.map(character => ({
+    // Log all character names to check data integrity
+    console.log('Fetched characters:', characters.map(character => character.name));
+
+    const filteredCharacters = characters.filter(character => {
+      const characterName = character.name.toLowerCase().trim();
+
+      // Log each character's name and whether it's in the unreleased list
+      const isUnreleased = unreleasedCharacters.includes(characterName);
+      console.log(`Checking character: ${characterName}, is unreleased: ${isUnreleased}`);
+
+      return !isUnreleased;
+    });
+
+    return filteredCharacters.map(character => ({
       ...character,
       roleImage: roleImageMap[character.role] || '',
       factionImages: getFactionImages(character.faction),
@@ -85,14 +96,16 @@ const CharacterList = ({ onSelect, bannedCharacters = {}, player1Picks = [], pla
   return (
     <div className="character-list-container">
       <div className="characters">
-        {allCharacters.map((character, index) => (
-          <CharacterCard
-            key={index}
-            character={character}
-            isBanned={isCharacterBannedOrPicked(character)} // Disable character if banned/picked
-            onClick={() => !isCharacterBannedOrPicked(character) && onSelect(character)} // Call onSelect if not banned/picked
-          />
-        ))}
+        {allCharacters
+          .filter(character => !unreleasedCharacters.includes(character.name.toLowerCase().trim())) // Ensure unreleased characters are filtered here
+          .map((character, index) => (
+            <CharacterCard
+              key={index}
+              character={character}
+              isBanned={isCharacterBannedOrPicked(character)} // Disable character if banned/picked
+              onClick={() => !isCharacterBannedOrPicked(character) && onSelect(character)} // Call onSelect if not banned/picked
+            />
+          ))}
       </div>
     </div>
   );
