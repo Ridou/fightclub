@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import CharacterCard from './CharacterCard';
 import '../styles/TeamPanel.css';
 
@@ -11,8 +11,18 @@ const TeamPanel = ({
   bannedCharacters = [],
   pickedCharacters = [], // Track picked characters
   team = [], // Receive team as a prop
-  side
+  side,
+  isEnemyTeam = false, // New prop to indicate if this is the enemy team
+  isPlayerTurn, // New prop to indicate if it's the player's turn
 }) => {
+  // Log the received props for debugging
+  useEffect(() => {
+    console.log(`TeamPanel (${side}) - playerData:`, playerData);
+    console.log(`TeamPanel (${side}) - team:`, team);
+    console.log(`TeamPanel (${side}) - bannedCharacters:`, bannedCharacters);
+    console.log(`TeamPanel (${side}) - pickedCharacters:`, pickedCharacters);
+  }, [playerData, team, bannedCharacters, pickedCharacters, side]);
+
   // Disable a character if it is banned or already picked
   const isCharacterDisabled = (character) => {
     return (
@@ -31,9 +41,9 @@ const TeamPanel = ({
               key={index}
               character={character}
               onClick={
-                isBanPhase
+                isPlayerTurn && isBanPhase && isEnemyTeam
                   ? () => onBanCharacter(character)
-                  : isPickPhase
+                  : isPlayerTurn && isPickPhase && !isEnemyTeam
                   ? () => onPickCharacter(character)
                   : null
               }

@@ -15,34 +15,33 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
   const [player2Deployed, setPlayer2Deployed] = useState([]);
   const [player1Banned, setPlayer1Banned] = useState([]);
   const [player2Banned, setPlayer2Banned] = useState([]);
-  const [banPhase, setBanPhase] = useState(true);
-  const [pickPhase, setPickPhase] = useState(false); // New state for pick phase
   const [player1Team, setPlayer1Team] = useState([]); // State to hold player1's team
   const [player2Team, setPlayer2Team] = useState([]); // State to hold player2's team
+  const [isReady, setIsReady] = useState(false); // Track if both players are ready
 
-  const { currentTurn, isPlayerTurn, setCurrentTurn, switchTurn } = useTurnManager(user, player1, player2);
+  const { currentTurn, isPlayerTurn, setCurrentTurn, switchTurn, banPhase, pickPhase } = useTurnManager(user, player1, player2);
   const { timer, setTimer, resetTimer } = useTimer(60, currentTurn, isPlayerTurn, banPhase || pickPhase);
 
   // Function to handle banning and picking
   const handlePickOrBan = (character, actionType) => {
-    const currentPlayer = currentTurn === player1.uid ? 'player1' : 'player2';
+    const currentPlayer = currentTurn === 1 ? 'player1' : 'player2';
     const draftRoomRef = ref(rtdb, `draftRooms/${draftRoomId}/${currentPlayer}`);
 
     if (actionType === 'ban') {
       // Ban the character and update the state and Firebase
-      if (currentPlayer === 'player1') {
-        setPlayer1Banned([...player1Banned, character]);
-        update(draftRoomRef, { banned: [...player1Banned, character] });
-      } else {
-        setPlayer2Banned([...player2Banned, character]);
-        update(draftRoomRef, { banned: [...player2Banned, character] });
+      if (currentPlayer === 'player1' && player1Banned.length < 1) {
+        setPlayer1Banned([...player1Banned, character.name]);
+        update(draftRoomRef, { banned: [...player1Banned, character.name] });
+      } else if (currentPlayer === 'player2' && player2Banned.length < 1) {
+        setPlayer2Banned([...player2Banned, character.name]);
+        update(draftRoomRef, { banned: [...player2Banned, character.name] });
       }
     } else if (actionType === 'pick') {
       // Pick the character and update the state and Firebase
-      if (currentPlayer === 'player1') {
+      if (currentPlayer === 'player1' && player1Deployed.length < 5) {
         setPlayer1Deployed([...player1Deployed, character]);
         update(draftRoomRef, { deployed: [...player1Deployed, character] });
-      } else {
+      } else if (currentPlayer === 'player2' && player2Deployed.length < 5) {
         setPlayer2Deployed([...player2Deployed, character]);
         update(draftRoomRef, { deployed: [...player2Deployed, character] });
       }
@@ -50,12 +49,6 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
 
     // Switch the turn after every pick or ban
     switchTurn();
-
-    // Check if we need to transition between phases
-    if (banPhase && player1Banned.length >= 2 && player2Banned.length >= 2) {
-      setBanPhase(false);
-      setPickPhase(true); // Start the pick phase
-    }
   };
 
   // Function to handle ready state
@@ -83,6 +76,7 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
         setShowReadyCheck(false);
         setTimer(60); // Start the timer for the first turn
         setCurrentTurn(1); // Player 1 starts
+        setIsReady(true); // Set isReady to true
       }
     } catch (error) {
       console.error('Error updating draft room:', error);
@@ -103,6 +97,7 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
           setShowReadyCheck(false);
           setTimer(60); // Start the timer for the first turn
           setCurrentTurn(1); // Player 1 starts
+          setIsReady(true); // Set isReady to true
         }
 
         // Sync banned and deployed characters from Firebase
@@ -168,6 +163,8 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
     draftRoomId,
     player1Team, // Expose player1's team
     player2Team, // Expose player2's team
+    isReady, // Expose isReady
+    setIsReady, // Expose setIsReady
   };
 };
 
