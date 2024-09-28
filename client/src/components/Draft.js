@@ -32,6 +32,8 @@ const Draft = ({ user }) => {
     player1Deployed,
     player2Deployed,
     handlePickOrBan,
+    player1Team,
+    player2Team,
   } = useDraftPhase(user, locationPlayer1, locationPlayer2, roomIdFromLocation);
 
   // Use Firebase Sync
@@ -51,6 +53,12 @@ const Draft = ({ user }) => {
     return () => unsubscribe();
   }, [roomIdFromLocation]);
 
+  // Debugging logs
+  useEffect(() => {
+    console.log('Draft - player1Data:', player1Data);
+    console.log('Draft - player2Data:', player2Data);
+  }, [player1Data, player2Data]);
+
   // Handle banning a character
   const handleBan = (character) => {
     if (banPhaseActive) {
@@ -68,6 +76,13 @@ const Draft = ({ user }) => {
     }
   };
 
+  // Handle picking a character
+  const handlePick = (character) => {
+    if (!banPhaseActive && pickPhase) {
+      handlePickOrBan(character, 'pick'); // Handle picking a character
+    }
+  };
+
   return (
     <div className="draft">
       <div className="draft-header">
@@ -80,9 +95,11 @@ const Draft = ({ user }) => {
           playerData={player1Data}
           isBanPhase={banPhase}
           isPickPhase={pickPhase} // Include pickPhase check
-          onBanCharacter={(character) => handlePickOrBan(character, 'ban')} // Handle ban
-          onPickCharacter={(character) => handlePickOrBan(character, 'pick')} // Handle pick
+          onBanCharacter={handleBan} // Handle ban
+          onPickCharacter={handlePick} // Handle pick
           bannedCharacters={bannedCharacters.player1}
+          pickedCharacters={player1Deployed.map((char) => char.name)} // Pass picked characters
+          team={player1Team} // Pass player1's team
           side="left"
         />
 
@@ -107,9 +124,11 @@ const Draft = ({ user }) => {
           playerData={player2Data}
           isBanPhase={banPhase}
           isPickPhase={pickPhase}
-          onBanCharacter={(character) => handlePickOrBan(character, 'ban')}
-          onPickCharacter={(character) => handlePickOrBan(character, 'pick')}
+          onBanCharacter={handleBan}
+          onPickCharacter={handlePick}
           bannedCharacters={bannedCharacters.player2}
+          pickedCharacters={player2Deployed.map((char) => char.name)} // Pass picked characters
+          team={player2Team} // Pass player2's team
           side="right"
         />
       </div>
@@ -117,14 +136,12 @@ const Draft = ({ user }) => {
       {/* Show ReadyCheckPopup until both players are ready */}
       {!isReady && (
         <ReadyCheckPopup
+          handleReadyClick={handleReadyClick}
           player1={player1Data}
           player2={player2Data}
           user={user}
           draftRoomId={roomIdFromLocation}
-          player1Ready={player1Data?.ready}
-          player2Ready={player2Data?.ready}
-          setPlayer1Ready={handleReadyClick}
-          setPlayer2Ready={handleReadyClick}
+          onReadyComplete={() => setIsReady(true)}
         />
       )}
     </div>

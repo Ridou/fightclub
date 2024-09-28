@@ -33,33 +33,63 @@ const DraftPage = ({ user, draftRoomId }) => {
   };
 
   return (
-    <div className="draft-page">
-      {!ready && (
-        <ReadyCheckPopup
-          player1={player1}
-          player2={player2}
-          user={user}
-          draftRoomId={draftRoomId}
-          onReadyComplete={handleReadyComplete}
-        />
-      )}
+    <div className="draft">
+      <div className="draft-header">
+        <h2>Draft Room</h2>
+      </div>
 
-      {ready && (
-        <div className="team-panels">
-          {/* Display both players' teams */}
-          <TeamPanel
-            playerData={player1}
-            isBanPhase={true} // Assuming ban phase starts right after ready check
-            bannedCharacters={player1BannedCharacters} // Player 1's banned characters
-            side="left"
-          />
-          <TeamPanel
-            playerData={player2}
-            isBanPhase={true}
-            bannedCharacters={player2BannedCharacters} // Player 2's banned characters
-            side="right"
-          />
-        </div>
+      <div className="draft-container">
+        {/* Team panel for Player 1 */}
+        <TeamPanel
+          playerData={player1Data}
+          isBanPhase={banPhase}
+          isPickPhase={pickPhase} // Include pickPhase check
+          onBanCharacter={(character) => handlePickOrBan(character, 'ban')} // Handle ban
+          onPickCharacter={(character) => handlePickOrBan(character, 'pick')} // Handle pick
+          bannedCharacters={bannedCharacters.player1}
+          side="left"
+        />
+
+        {/* Deployed panel for Player 1 */}
+        <DeployedPanel deployedTeam={player1Deployed || []} />
+
+        {/* Middle panel showing the ban/pick phase and the current player turn */}
+        <MiddlePanel
+          banPhase={banPhaseActive}
+          currentTurn={currentTurn}
+          player1Name={player1Data?.inGameName}
+          player2Name={player2Data?.inGameName}
+          isPlayerTurn={isPlayerTurn}
+          timer={timer}
+        />
+
+        {/* Deployed panel for Player 2 */}
+        <DeployedPanel deployedTeam={player2Deployed || []} />
+
+        {/* Team panel for Player 2 */}
+        <TeamPanel
+          playerData={player2Data}
+          isBanPhase={banPhase}
+          isPickPhase={pickPhase}
+          onBanCharacter={(character) => handlePickOrBan(character, 'ban')}
+          onPickCharacter={(character) => handlePickOrBan(character, 'pick')}
+          bannedCharacters={bannedCharacters.player2}
+          side="right"
+        />
+      </div>
+
+      {/* Show ReadyCheckPopup until both players are ready */}
+      {!isReady && (
+        <ReadyCheckPopup
+          player1={player1Data}
+          player2={player2Data}
+          user={user}
+          draftRoomId={roomIdFromLocation}
+          player1Ready={player1Data?.ready}
+          player2Ready={player2Data?.ready}
+          setPlayer1Ready={handleReadyClick}
+          setPlayer2Ready={handleReadyClick}
+        />
       )}
     </div>
   );

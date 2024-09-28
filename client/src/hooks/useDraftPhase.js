@@ -3,6 +3,7 @@ import { ref, onValue, update } from 'firebase/database';
 import useTurnManager from './useTurnManager';
 import useTimer from './useTimer';
 import { rtdb } from '../firebase';
+import { getUserTeam } from '../firebase'; // Import team fetching function
 
 const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
   const [showReadyCheck, setShowReadyCheck] = useState(true);
@@ -16,6 +17,8 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
   const [player2Banned, setPlayer2Banned] = useState([]);
   const [banPhase, setBanPhase] = useState(true);
   const [pickPhase, setPickPhase] = useState(false); // New state for pick phase
+  const [player1Team, setPlayer1Team] = useState([]); // State to hold player1's team
+  const [player2Team, setPlayer2Team] = useState([]); // State to hold player2's team
 
   const { currentTurn, isPlayerTurn, setCurrentTurn, switchTurn } = useTurnManager(user, player1, player2);
   const { timer, setTimer, resetTimer } = useTimer(60, currentTurn, isPlayerTurn, banPhase || pickPhase);
@@ -55,6 +58,37 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
     }
   };
 
+  // Function to handle ready state
+  const handleReadyClick = async () => {
+    const draftRoomRef = ref(rtdb, `draftRooms/${draftRoomId}`);
+
+    try {
+      const updatedDraftData = {};
+
+      // Use cached uid to update Firebase
+      if (user.uid === player1?.uid) {
+        updatedDraftData['player1/ready'] = true;
+      } else if (user.uid === player2?.uid) {
+        updatedDraftData['player2/ready'] = true;
+      } else {
+        console.error('User UID does not match either player1 or player2 UID');
+      }
+
+      console.log('Updated Draft Data:', updatedDraftData); // Debugging to see what's sent
+
+      await update(draftRoomRef, updatedDraftData);
+
+      // Check if both players are ready, then start the draft
+      if (updatedDraftData['player1/ready'] && updatedDraftData['player2/ready']) {
+        setShowReadyCheck(false);
+        setTimer(60); // Start the timer for the first turn
+        setCurrentTurn(1); // Player 1 starts
+      }
+    } catch (error) {
+      console.error('Error updating draft room:', error);
+    }
+  };
+
   // Firebase sync - Only trigger updates when data changes
   useEffect(() => {
     const draftRoomRef = ref(rtdb, `draftRooms/${draftRoomId}`);
@@ -81,12 +115,32 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
         setPlayer1((prev) => ({
           ...prev,
           inGameName: data.player1.inGameName || 'Player 1',
+          uid: data.player1.uid,
         }));
 
         setPlayer2((prev) => ({
           ...prev,
           inGameName: data.player2.inGameName || 'Player 2',
+          uid: data.player2.uid,
         }));
+
+        // Fetch teams for both players
+        const fetchTeams = async () => {
+          try {
+            const team1 = await getUserTeam(data.player1.uid);
+            const team2 = await getUserTeam(data.player2.uid);
+            setPlayer1Team(team1 || []);
+            setPlayer2Team(team2 || []);
+          } catch (error) {
+            console.error('Error fetching teams:', error);
+          }
+        };
+
+        fetchTeams();
+
+        // Debugging logs
+        console.log('useDraftPhase - player1:', data.player1);
+        console.log('useDraftPhase - player2:', data.player2);
       }
     });
 
@@ -106,11 +160,14 @@ const useDraftPhase = (user, locationPlayer1, locationPlayer2, draftRoomId) => {
     player2Deployed,
     bannedCharacters: { player1: player1Banned, player2: player2Banned },
     handlePickOrBan, // Expose handlePickOrBan function
+    handleReadyClick, // Expose handleReadyClick function
     player1Ready,
     player2Ready,
     setPlayer1Ready,
     setPlayer2Ready,
     draftRoomId,
+    player1Team, // Expose player1's team
+    player2Team, // Expose player2's team
   };
 };
 

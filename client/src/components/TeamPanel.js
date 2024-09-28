@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import CharacterCard from './CharacterCard';
-import { getUserTeam } from '../firebase'; // Import team fetching function
 import '../styles/TeamPanel.css';
 
 const TeamPanel = ({
@@ -11,26 +10,9 @@ const TeamPanel = ({
   onPickCharacter, // Add pick character function
   bannedCharacters = [],
   pickedCharacters = [], // Track picked characters
+  team = [], // Receive team as a prop
   side
 }) => {
-  const [team, setTeam] = useState([]); // Local state to hold the fetched team
-
-  useEffect(() => {
-    const fetchTeam = async () => {
-      if (playerData?.uid) {
-        try {
-          const fetchedTeam = await getUserTeam(playerData.uid);
-          setTeam(fetchedTeam || []);
-        } catch (error) {
-          console.error(`Error fetching team for UID: ${playerData.uid}`, error);
-          setTeam([]); // Default to an empty array if there was an error
-        }
-      }
-    };
-
-    fetchTeam();
-  }, [playerData?.uid]);
-
   // Disable a character if it is banned or already picked
   const isCharacterDisabled = (character) => {
     return (
