@@ -1,0 +1,66 @@
+.match-details-page {
+    text-align: center;
+    margin-top: 20px;
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    color: #ffffff;
+  }
+  
+  .match-details-container {
+    display: grid;
+    grid-template-columns: 1fr 0.5fr 2fr 0.5fr 1fr;
+    gap: 20px;
+    align-items: start;
+    padding: 0 40px;
+    background-color: #1f1f1f;
+    border-radius: 10px;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.7);
+  }
+  
+  .team-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px;
+    background-color: #333333;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.7);
+  }
+  
+  .middle-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #262626;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.7);
+  }
+  
+  .report-button {
+    background-color: #9147ff;
+    color: #ffffff;
+    padding: 10px 30px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.7);
+    transition: background-color 0.3s;
+    text-decoration: none;
+    margin-top: 20px;
+  }
+  
+  .report-button:hover {
+    background-color: #6d35bf;
+  }
+  
+  .map-image {
+    max-width: 100%;
+    height: auto;
+    margin-top: 20px;
+    border-radius: 8px;
+  }

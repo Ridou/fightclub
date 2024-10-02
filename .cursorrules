@@ -1,0 +1,51 @@
+Code Style and Structure
+Write concise, technical JavaScript code with accurate examples.
+Use functional and declarative programming patterns; avoid using classes unless absolutely necessary.
+Prefer iteration and modularization over code duplication.
+Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError, canSubmit).
+Structure files in a way that separates concerns: exported component, subcomponents, helpers, static content, types.
+Naming Conventions
+Use lowercase with dashes for directories (e.g., components/auth-wizard).
+Use camelCase for function and variable names (e.g., fetchUserData, handleInputChange).
+Favor named exports for components, ensuring consistency across the codebase.
+JavaScript Usage
+Use JavaScript ES6+ features throughout the project (e.g., destructuring, arrow functions, template literals).
+Avoid using var; use const and let for variable declarations.
+Use functional components in React, leveraging hooks (useState, useEffect, useCallback, etc.) for managing state and side effects.
+Use async/await syntax for asynchronous operations. Avoid the then/catch pattern for cleaner asynchronous logic.
+Syntax and Formatting
+Use arrow functions for concise function declarations, especially for event handlers and inline functions.
+Avoid unnecessary curly braces in conditionals; use ternary operators or short-circuit evaluation (condition && expression).
+Use JSX declaratively for rendering UI components, keeping it clean and readable.
+Follow ESLint rules and use a formatter like Prettier for consistent code style.
+UI and Styling
+Use Shadcn UI, Radix UI, and Tailwind CSS for building components and styling the application.
+Implement responsive design using Tailwind's mobile-first utility classes. Ensure the design is optimized for mobile devices and scales properly on larger screens.
+Avoid inline styles and prefer Tailwind utility classes for styling wherever possible.
+Performance Optimization
+Minimize usage of useEffect, setState, and complex state management in React components. Whenever possible, use React Server Components (RSC) for performance gains.
+Wrap client-side components in React.Suspense with a fallback to avoid unnecessary delays in loading.
+Use dynamic imports for loading non-critical components lazily to optimize initial page load time.
+Optimize images by using the WebP format where possible. Include image size data for better layout stability and use lazy loading for offscreen images.
+Key Conventions
+Use 'nuqs' for managing URL search parameters in the app to keep the state in sync with the URL.
+Focus on optimizing Web Vitals: Largest Contentful Paint (LCP), Cumulative Layout Shift (CLS), and First Input Delay (FID).
+Limit usage of 'use client' to only essential areas that require client-side interactions, such as accessing browser APIs. Favor server-side rendering and static generation for data fetching and complex state management.
+Next.js Data Fetching, Rendering, and Routing
+Follow Next.js App Router conventions for data fetching:
+
+Use getServerSideProps or getStaticProps where applicable for server-side and static generation, respectively.
+Avoid client-side data fetching for content that can be pre-rendered.
+Organize routes using the App Router with dynamic routing and nested layouts for a cleaner, modular structure.
+Use Next.js Image optimization for handling images efficiently.
+
+Leverage Next.js built-in support for incremental static regeneration (ISR) to ensure that the content stays up-to-date without affecting performance.
+
+Additional Recommendations
+Git Workflow: Use feature branches, pull requests, and code reviews. Keep the main branch production-ready.
+
+Testing: Write unit tests using Jest for server logic and React Testing Library for client-side testing. Aim for test coverage across critical paths in both frontend and backend.
+
+Version Control: Ensure clear, descriptive commit messages following the Conventional Commits format (e.g., feat: add login component or fix: update socket connection handling).
+
+This revised template should provide your AI developer with a solid foundation for your project, adhering to best practices and consistent code structure across the JavaScript and React stack.

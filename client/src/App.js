@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { io } from 'socket.io-client'; // Import socket.io client
-import Ladder from './components/Ladder';
-import Draft from './components/Draft';
+import Ladder from './components/Leaderboard';
 import CharacterList from './components/CharacterList';
 import Header from './components/Header';
 import Match from './components/Match';
 import AccountPage from './pages/AccountPage'; // Import AccountPage
+import MatchDetails from './components/MatchDetails';
+import ReportMatch from './components/ReportMatch';
 import { loginWithGoogle, getUserProfile } from './firebase'; // Import getUserProfile
 import { getAuth } from "firebase/auth";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // Import QueryClient and Provider
@@ -22,26 +23,26 @@ function App() {
   const [loading, setLoading] = useState(true); // Loading state
   const [socket, setSocket] = useState(null); // Store WebSocket connection
 
-// Fetch the user details (in-game name and team) from Firestore with caching
-const fetchUserDetails = async (uid) => {
-  try {
-    console.log(`Fetching user details for UID: ${uid}`);
-    const userData = await getUserProfile(uid); // Use the updated function that checks both Firestore and Realtime Database
-    if (userData) {
-      setInGameName(userData.displayName || "Unknown User");
-      setTeam(userData.team || []); // Fetch the team or default to an empty array
+  // Fetch the user details (in-game name and team) from Firestore with caching
+  const fetchUserDetails = async (uid) => {
+    try {
+      console.log(`Fetching user details for UID: ${uid}`);
+      const userData = await getUserProfile(uid); // Use the updated function that checks both Firestore and Realtime Database
+      if (userData) {
+        setInGameName(userData.displayName || "Unknown User");
+        setTeam(userData.team || []); // Fetch the team or default to an empty array
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
     }
-  } catch (error) {
-    console.error('Error fetching user details:', error);
-  }
-};
+  };
 
-useEffect(() => {
-  if (user) {
-    console.log('User logged in, fetching details:', user.uid);
-    fetchUserDetails(user.uid); // Fetch details whenever the user is updated or logged in
-  }
-}, [user]);
+  useEffect(() => {
+    if (user) {
+      console.log('User logged in, fetching details:', user.uid);
+      fetchUserDetails(user.uid); // Fetch details whenever the user is updated or logged in
+    }
+  }, [user]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -56,21 +57,20 @@ useEffect(() => {
     }
   };
 
-// Handle Google Login
-const handleLogin = async () => {
-  try {
-    setLoading(true);
-    const { user } = await loginWithGoogle();
-    console.log('Logged in as:', user); // Add logging
-    setUser(user);
-    fetchUserDetails(user.uid); // Fetch user details after login
-  } catch (error) {
-    console.error("Error during login:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  // Handle Google Login
+  const handleLogin = async () => {
+    try {
+      setLoading(true);
+      const { user } = await loginWithGoogle();
+      console.log('Logged in as:', user); // Add logging
+      setUser(user);
+      fetchUserDetails(user.uid); // Fetch user details after login
+    } catch (error) {
+      console.error("Error during login:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // WebSocket connection initialization
   useEffect(() => {
@@ -81,10 +81,6 @@ const handleLogin = async () => {
 
     newSocket.on('connect', () => {
       console.log('Connected to WebSocket server');
-    });
-
-    newSocket.on('updateDraft', (data) => {
-      console.log('Draft update received:', data);
     });
 
     // Cleanup the socket connection on unmount
@@ -110,7 +106,7 @@ const handleLogin = async () => {
     });
 
     return () => unsubscribe();
-}, []);
+  }, []);
 
   // Function to update queue count (could be part of Match component too)
   const handleQueueUpdate = (newCount) => {
@@ -143,11 +139,12 @@ const handleLogin = async () => {
             <Routes>
               <Route path="/account" element={<AccountPage user={user} />} /> {/* Updated to use AccountPage */}
               <Route path="/characters" element={<CharacterList />} />
-              <Route path="/draft" element={<Draft user={user} socket={socket} />} /> {/* Pass the socket to Draft */}
               <Route 
                 path="/match" 
                 element={<Match user={user} handleQueueUpdate={handleQueueUpdate} />} // Pass user and queue update
               /> 
+              <Route path="/match/:matchId" element={<MatchDetails />} />
+              <Route path="/report/:matchId" element={<ReportMatch user={user} />} />
               <Route path="/ladder" element={<Ladder />} />
               <Route path="/" element={<Navigate to="/account" />} />
               <Route path="*" element={<Navigate to="/account" />} />

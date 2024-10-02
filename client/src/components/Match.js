@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, doc, setDoc, deleteDoc, getDoc, onSnapshot, query, where, limit } from 'firebase/firestore';
-import { ref, get, update, set, child, runTransaction } from 'firebase/database'; 
-import { db, rtdb } from '../firebase';
-import { v4 as uuidv4 } from 'uuid';
+import { db } from '../firebase';
+import { doc, getDoc, setDoc, deleteDoc, collection, query, where, onSnapshot, limit, arrayUnion } from 'firebase/firestore';
+import ModeMapSelection from './ModeMapSelection';
 
 const Match = ({ user }) => {
   const navigate = useNavigate();
-  const [draftRoomId, setDraftRoomId] = useState(null);
+  const [matchId, setMatchId] = useState(null);
+  const [selection, setSelection] = useState(null);
 
-  // Fetch player's inGameName from Firestore
   const fetchInGameName = async (uid) => {
     try {
       const userDocRef = doc(db, `users/${uid}`);
@@ -20,105 +19,56 @@ const Match = ({ user }) => {
         return 'Player';
       }
     } catch (error) {
+      console.error('Error fetching in-game name:', error);
       return 'Player';
     }
   };
 
-  // Assign players based on UID and randomize
-  const assignPlayers = (user1, user2) => {
-    let [player1, player2] = user1.uid < user2.uid ? [user1, user2] : [user2, user1];
-
-    // Randomize who is Player 1 and Player 2
-    if (Math.random() < 0.5) {
-      [player1, player2] = [player2, player1];
-    }
-
-    return { player1, player2 };
-  };
-
-  // Check for existing draft room in Realtime Database
-  const findExistingDraftRoom = async (uid1, uid2) => {
-    try {
-      const draftRoomsRef = ref(rtdb, 'draftRooms');
-      const snapshot = await get(draftRoomsRef);
-      const draftRooms = snapshot.exists() ? snapshot.val() : null;
-
-      if (!draftRooms) return null;
-
-      for (const roomId in draftRooms) {
-        const room = draftRooms[roomId];
-        if (
-          (room.player1?.uid === uid1 || room.player1?.uid === uid2) &&
-          (room.player2?.uid === uid1 || room.player2?.uid === uid2)
-        ) {
-          return { roomId, room };
-        }
-      }
-      return null;
-    } catch (error) {
-      return null;
-    }
-  };
-
-  // Create or join a draft room in Realtime Database with a transaction
-  const createOrJoinDraftRoom = async (opponent) => {
+  const createOrJoinMatch = async (opponent) => {
     try {
       const player1InGameName = await fetchInGameName(user.uid);
       const player2InGameName = await fetchInGameName(opponent.uid);
 
-      // First, check if there is already an existing room for these two players
-      const existingRoom = await findExistingDraftRoom(user.uid, opponent.uid);
+      if (!player1InGameName || !player2InGameName) {
+        throw new Error('In-game name is undefined');
+      }
 
-      if (existingRoom) {
-        return existingRoom.roomId;
+      const matchId = `${user.uid}_${opponent.uid}`;
+      const matchRef = doc(db, `matches/${matchId}`);
+
+      const matchDoc = await getDoc(matchRef);
+      if (matchDoc.exists()) {
+        return matchId;
       } else {
-        // Use a transaction to ensure only one room is created
-        const draftRoomsRef = ref(rtdb, 'draftRooms');
-        let roomId = null;
-
-        await runTransaction(draftRoomsRef, (draftRooms) => {
-          if (draftRooms) {
-            // Check again for an existing room inside the transaction
-            for (const id in draftRooms) {
-              const room = draftRooms[id];
-              if (
-                (room.player1?.uid === user.uid || room.player1?.uid === opponent.uid) &&
-                (room.player2?.uid === user.uid || room.player2?.uid === opponent.uid)
-              ) {
-                roomId = id; // Found existing room
-                return draftRooms; // Abort transaction, no need to create a new room
-              }
-            }
-          }
-          // If no room exists, create a new one
-          roomId = uuidv4();
-          const { player1, player2 } = assignPlayers(
-            { uid: user.uid, inGameName: player1InGameName, ready: false },
-            { uid: opponent.uid, inGameName: player2InGameName, ready: false }
-          );
-
-          draftRooms = {
-            ...draftRooms,
-            [roomId]: {
-              player1,
-              player2
-            }
-          };
-          return draftRooms;
+        await setDoc(matchRef, {
+          player1: { uid: user.uid, inGameName: player1InGameName },
+          player2: { uid: opponent.uid, inGameName: player2InGameName },
+          status: 'active',
+          createdAt: Date.now(),
+          mode: selection.mode, // Use the selected mode
+          map: selection.map // Use the selected map
         });
-        return roomId;
+
+        const userRef = doc(db, `users/${user.uid}`);
+        const opponentRef = doc(db, `users/${opponent.uid}`);
+        await setDoc(userRef, { activeMatches: arrayUnion(matchId) }, { merge: true });
+        await setDoc(opponentRef, { activeMatches: arrayUnion(matchId) }, { merge: true });
+
+        return matchId;
       }
     } catch (error) {
+      console.error('Error creating or joining match:', error);
       return null;
     }
   };
 
-  // Handle matchmaking process
   const handleMatchmaking = async () => {
     try {
       const q = query(
         collection(db, 'queue'),
         where('uid', '!=', user.uid),
+        where('mode', '==', selection.mode),
+        where('map', '==', selection.map),
         limit(1)
       );
 
@@ -127,62 +77,61 @@ const Match = ({ user }) => {
           const opponentDoc = snapshot.docs[0];
           const opponent = opponentDoc.data();
 
-          const roomId = await createOrJoinDraftRoom(opponent);
+          const matchId = await createOrJoinMatch(opponent);
 
-          if (roomId) {
-            setDraftRoomId(roomId);
+          if (matchId) {
+            setMatchId(matchId);
 
-            const roomData = await get(child(ref(rtdb), `draftRooms/${roomId}`));
+            await deleteDoc(doc(db, `queue/${user.uid}`));
+            await deleteDoc(doc(db, `queue/${opponent.uid}`));
 
-            // Check if roomData exists and is not null before accessing player1 and player2
-            if (roomData.exists()) {
-              const roomVal = roomData.val();
-
-              const player1 = roomVal.player1;
-              const player2 = roomVal.player2;
-
-              await deleteDoc(doc(db, `queue/${user.uid}`));
-              await deleteDoc(doc(db, `queue/${opponent.uid}`));
-
-              navigate('/draft', {
-                state: {
-                  player1,
-                  player2,
-                  draftRoomId: roomId,
-                },
-              });
-            }
+            navigate('/account');
           }
         }
       });
 
       return () => unsubscribe();
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error handling matchmaking:', error);
+    }
   };
 
-  // Add player to the queue
   useEffect(() => {
-    const joinQueue = async () => {
-      try {
-        const queueRef = doc(db, `queue/${user.uid}`);
-        await setDoc(queueRef, {
-          uid: user.uid,
-          inGameName: user.inGameName || 'Player',
-        });
+    if (user && selection) {
+      const joinQueue = async () => {
+        try {
+          const queueRef = doc(db, `queue/${user.uid}`);
+          await setDoc(queueRef, {
+            uid: user.uid,
+            inGameName: user.inGameName || 'Player',
+            mode: selection.mode,
+            map: selection.map,
+          });
 
-        handleMatchmaking();
-      } catch (error) {}
-    };
+          handleMatchmaking();
+        } catch (error) {
+          console.error('Error joining queue:', error);
+        }
+      };
 
-    if (user) {
       joinQueue();
     }
-  }, [user]);
+  }, [user, selection]);
+
+  const handleSelection = (selection) => {
+    setSelection(selection);
+  };
 
   return (
     <div>
-      <h2>Waiting for an opponent...</h2>
-      {draftRoomId && <p>Draft Room ID: {draftRoomId}</p>}
+      {!selection ? (
+        <ModeMapSelection onSelection={handleSelection} />
+      ) : (
+        <div>
+          <h2>Waiting for an opponent...</h2>
+          {matchId && <p>Match ID: {matchId}</p>}
+        </div>
+      )}
     </div>
   );
 };

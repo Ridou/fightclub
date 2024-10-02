@@ -1,41 +1,30 @@
 const express = require('express');
-const cors = require('cors');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-require('dotenv').config();
-
-const handleDraftEvents = require('./sockets/draftHandlers');
+const http = require('http');
+const socketIo = require('socket.io');
+const admin = require('firebase-admin');
 
 const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-});
+const server = http.createServer(app);
+const io = socketIo(server);
 
-app.use(cors());
-app.use(express.json());
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    databaseURL: 'https://socfightclub-default-rtdb.firebaseio.com/' // Replace with your Firebase Database URL
+  });
+}
 
-app.use((req, res, next) => {
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
-  next();
-});
+const db = admin.database();
 
-// Handle draft socket events
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+  console.log('New client connected');
 
-  handleDraftEvents(io, socket); // Handle draft-related events
+  // Handle other socket events here
 
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    console.log('Client disconnected');
   });
 });
 
 const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

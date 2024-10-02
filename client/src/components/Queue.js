@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getFirestore, collection, addDoc, onSnapshot, query, where, updateDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, updateDoc, doc, onSnapshot } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const Queue = () => {
@@ -7,7 +7,7 @@ const Queue = () => {
   const [queueSize, setQueueSize] = useState(0);
   const [waiting, setWaiting] = useState(false);
   const [matchId, setMatchId] = useState(null);
-  
+
   const db = getFirestore();
   const auth = getAuth();
   const user = auth.currentUser;
@@ -29,16 +29,12 @@ const Queue = () => {
 
   // Listen for queue updates
   useEffect(() => {
-    const q = query(collection(db, 'queue'));
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      setQueueSize(querySnapshot.size);
+    const q = collection(db, 'queue');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setQueueSize(snapshot.size);
 
-      // If there are two players, create a match
-      if (querySnapshot.size >= 2) {
-        const players = querySnapshot.docs.map(doc => doc.data());
-        const [player1, player2] = players;
-
-        // Create match document
+      if (snapshot.size >= 2) {
+        const [player1, player2] = snapshot.docs.map(doc => doc.data());
         createMatch(player1, player2);
       }
     });
@@ -60,24 +56,23 @@ const Queue = () => {
       // Remove players from the queue after match creation
       await updateDoc(doc(db, 'queue', player1.uid), { matched: true });
       await updateDoc(doc(db, 'queue', player2.uid), { matched: true });
-      
+
       setWaiting(false); // End waiting
     } catch (error) {
       console.error('Error creating match:', error);
     }
   };
 
-  if (waiting) return <p>Waiting for a match...</p>;
-
   return (
-    <div className="queue">
-      <h2>Join Queue</h2>
-      <p>Current players in queue: {queueSize}</p>
-      {matchId ? (
-        <p>Match found! <a href={`/match/${matchId}`}>Go to match</a></p>
+    <div>
+      <h2>Queue</h2>
+      <p>Queue Size: {queueSize}</p>
+      {waiting ? (
+        <p>Waiting for an opponent...</p>
       ) : (
-        <button onClick={joinQueue} disabled={inQueue}>Join Queue</button>
+        <button onClick={joinQueue}>Join Queue</button>
       )}
+      {matchId && <p>Match ID: {matchId}</p>}
     </div>
   );
 };

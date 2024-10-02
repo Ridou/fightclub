@@ -67,7 +67,7 @@ const Header = ({ user, handleLogout }) => {
         <ul className="nav-links">
           <li><Link to="/account">Account</Link></li>
           <li><Link to="/characters">Characters</Link></li>
-          <li><Link to="/draft">Draft</Link></li>
+          <li><Link to="/tournament">Tournament</Link></li>
           <li><Link to="/ladder">Ladder</Link></li>
         </ul>
       </nav>
